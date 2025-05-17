@@ -1,0 +1,28 @@
+{
+  "Routes": [
+    {
+        "DownstreamPathTemplate": "/api/catalog/{everything}",
+        "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+            {
+                "Host": "localhost",
+                "Port": 5034
+            }
+        ],
+        "UpstreamPathTemplate": "/api/catalog/{everything}",
+        "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/orders/{everything}",
+      "DownstreamScheme": "http",
+        "DownstreamHostAndPorts": [
+            {
+                "Host": "order-service",
+                "Port": 5002
+            }
+        ],
+      "UpstreamPathTemplate": "/api/orders/{everything}",
+      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+    }
+  ]
+}

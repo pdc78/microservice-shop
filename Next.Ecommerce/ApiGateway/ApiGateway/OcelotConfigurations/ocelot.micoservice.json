@@ -17,8 +17,8 @@
       "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [
             {
-                "Host": "order-service",
-                "Port": 5002
+                "Host": "localhost",
+                "Port": 5242
             }
         ],
       "UpstreamPathTemplate": "/api/orders/{everything}",

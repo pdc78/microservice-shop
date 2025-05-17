@@ -4,3 +4,7 @@
 # Accept: application/json
 
 # ###
+
+#Invoke-RestMethod -Uri "http://localhost:5034/api/catalog/products" -Method Get
+#Invoke-RestMethod -Uri "http://localhost:5096/api/catalog/products" -Method Get
+

@@ -5,23 +5,23 @@
         "DownstreamScheme": "http",
         "DownstreamHostAndPorts": [
             {
-                "Host": "localhost",
-                "Port": 5034
+                "Host": "api-catalog",
+                "Port": 8080
             }
         ],
-        "UpstreamPathTemplate": "/api/catalog/{everything}",
+        "UpstreamPathTemplate": "/apigateway/catalog/{everything}",
         "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
     },
     {
       "DownstreamPathTemplate": "/api/orders/{everything}",
       "DownstreamScheme": "http",
-        "DownstreamHostAndPorts": [
-            {
-                "Host": "localhost",
-                "Port": 5242
-            }
-        ],
-      "UpstreamPathTemplate": "/api/orders/{everything}",
+      "DownstreamHostAndPorts": [
+        {
+           "Host": "api-order",
+           "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/apigateway/orders/{everything}",
       "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
     }
   ]

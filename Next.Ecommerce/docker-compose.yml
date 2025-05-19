@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  api-catalog:
+    image: api-catalog-img
+    container_name: api-catalog
+    ports:
+      - "5097:8080"
+    networks:
+      - shop-network
+
+  api-order:
+    image: api-order-img
+    container_name: api-order
+    networks:
+      - shop-network
+
+  api-gateway:
+    image: api-gateway-img
+    container_name: api-gateway
+    ports:
+      - "5096:8080"
+    networks:
+      - shop-network
+    depends_on:
+      - api-catalog
+      - api-order
+
+networks:
+  shop-network:
+    driver: bridge

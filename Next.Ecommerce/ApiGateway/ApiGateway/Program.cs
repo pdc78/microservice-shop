@@ -17,5 +17,6 @@ app.UseOcelot().Wait();
 app.Run();
 
 
-// Invoke-RestMethod -Uri "http://localhost:5096/api/catalog/products" -Method Get
-// Invoke-RestMethod -Uri "http://localhost:5096/api/orders" -Method Get       
+
+//  Invoke-RestMethod -Uri "http://localhost:5096/apigateway/orders" -Method Get
+//  Invoke-RestMethod -Uri "http://localhost:5096/apigateway/catalog/products" -Method Get

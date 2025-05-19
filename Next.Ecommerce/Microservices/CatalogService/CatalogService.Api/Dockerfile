@@ -1,5 +1,6 @@
 #docker build --progress=plain -t api-catalog-img -f .\Microservices\CatalogService\CatalogService.Api\Dockerfile .\Microservices\CatalogService\CatalogService.Api\
 #docker run -d -p 5097:8080 --name api-catalog api-catalog-img
+#http://localhost:5097/api/catalog/products
 
 # Explanation of Each Part:
 # docker run → Starts a new Docker container.

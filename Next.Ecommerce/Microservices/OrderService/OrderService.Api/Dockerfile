@@ -1,5 +1,6 @@
 #docker build --progress=plain -t api-order-img -f .\Microservices\OrderService\OrderService.Api\Dockerfile .\Microservices\OrderService\OrderService.Api\
 #docker run -d -p 5097:8080 --name api-order api-order-img
+#http://localhost:5099/api/orders
 
 # Explanation of Each Part:
 # docker run → Starts a new Docker container.

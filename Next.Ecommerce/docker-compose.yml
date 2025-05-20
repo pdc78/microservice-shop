@@ -11,6 +11,8 @@ services:
   api-order:
     image: api-order-img
     container_name: api-order
+    ports:
+      - "5096:8080"
     networks:
       - shop-network
 
@@ -18,13 +20,24 @@ services:
     image: api-gateway-img
     container_name: api-gateway
     ports:
-      - "5096:8080"
+      - "5090:8080"
     networks:
       - shop-network
     depends_on:
       - api-catalog
       - api-order
 
+  eshop:
+    image: eshop-app-img
+    container_name: eshop
+    ports:
+      - "5050:8080"
+    networks:
+      - shop-network
+    depends_on:
+      - api-gateway
+    environment:
+      - API_GATEWAY_URL=http://api-gateway:8080
 networks:
   shop-network:
     driver: bridge

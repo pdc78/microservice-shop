@@ -67,7 +67,7 @@ namespace eShop.Controllers
 
         public async Task<IActionResult> Index(string? search)
         {
-            var apiUrl = "http://localhost:5096/apigateway/catalog/products";
+            var apiUrl = "http://localhost:5050/apigateway/catalog/products";
 
             var products = await _httpClient.GetFromJsonAsync<List<Product>>(apiUrl);
 

@@ -1,4 +1,3 @@
-version: "3.8"
 
 services:
   api-catalog:
@@ -25,6 +24,17 @@ services:
     depends_on:
       - api-catalog
       - api-order
+
+  eshop:
+    build:
+      context: ./eshop
+    container_name: eshop
+    ports:
+      - "5000:80"           # Esponi la web app su localhost:5000
+    networks:
+      - shop-network
+    depends_on:
+      - api-gateway
 
 networks:
   shop-network:

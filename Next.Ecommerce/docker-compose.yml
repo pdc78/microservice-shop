@@ -45,6 +45,7 @@ services:
     depends_on:
       - api-catalog
       - api-order
+      - api-basket
 
   eshop:
     container_name: eshop

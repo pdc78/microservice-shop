@@ -16,16 +16,16 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["eShop/eShop.csproj", "."]
+COPY ["eShop.csproj", "."]
 RUN dotnet restore "./eShop.csproj"
 COPY . .
 WORKDIR "/src/."
-RUN dotnet build "./eShop/eShop.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "./eShop.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Questa fase viene usata per pubblicare il progetto di servizio da copiare nella fase finale
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./eShop/eShop.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./eShop.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Questa fase viene usata nell'ambiente di produzione o durante l'esecuzione da Visual Studio in modalità normale (impostazione predefinita quando non si usa la configurazione di debug)
 FROM base AS final

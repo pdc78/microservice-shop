@@ -8,16 +8,15 @@ EXPOSE 80
 
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+
+# Set working dir
 WORKDIR /src
+COPY ./ApiGateway/APIGateway.csproj ./ApiGateway/
+RUN dotnet restore "ApiGateway/APIGateway.csproj"
 
-# CMD ["ls", "-l", "/src"]
+COPY . .
 
-COPY ./ApiGateway .
-
-RUN ls -la
-
-WORKDIR "/src/ApiGateway"
-RUN dotnet restore "APIGateway.csproj"
+WORKDIR /src/ApiGateway
 RUN dotnet publish -c Release -o /app
 
 # Run stage

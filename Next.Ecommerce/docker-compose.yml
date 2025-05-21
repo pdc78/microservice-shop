@@ -1,24 +1,33 @@
 
 services:
   api-catalog:
-    image: api-catalog-img
     container_name: api-catalog
+    image: api-catalog-img
+    build:
+      context: ./microservices/catalogservice/catalogservice.api
+      dockerfile: Dockerfile
     ports:
       - "5097:8080"
     networks:
       - shop-network
 
   api-order:
-    image: api-order-img
     container_name: api-order
+    image: api-order-img
+    build:
+      context: ./microservices/orderservice/orderservice.api
+      dockerfile: Dockerfile
     ports:
       - "5096:8080"
     networks:
       - shop-network
 
   api-gateway:
-    image: api-gateway-img
     container_name: api-gateway
+    image: api-gateway-img
+    build:
+      context: apigateway
+      dockerfile: Dockerfile
     ports:
       - "5090:8080"
     networks:
@@ -28,8 +37,11 @@ services:
       - api-order
 
   eshop:
-    image: eshop-app-img
     container_name: eshop
+    image: eshop-app-img
+    build:
+      context: eshop
+      dockerfile: Dockerfile
     ports:
       - "5050:8080"
     networks:

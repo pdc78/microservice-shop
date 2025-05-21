@@ -1,40 +1,33 @@
-#docker build --progress=plain -t api-catalog-img -f .\Microservices\CatalogService\CatalogService.Api\Dockerfile .\Microservices\CatalogService\CatalogService.Api\
-#docker run -d -p 5097:8080 --name api-catalog api-catalog-img
-#http://localhost:5097/api/catalog/products
+# Vedere https://aka.ms/customizecontainer per informazioni su come personalizzare il contenitore di debug e su come Visual Studio usa questo Dockerfile per compilare le immagini per un debug più rapido.
 
-# Explanation of Each Part:
-# docker run → Starts a new Docker container.
-
-# -d → Runs the container in detached mode, meaning it runs in the background.
-
-# -p 5097:8080 → Maps port 8080 inside the container to 5097 on your local machine.
-
-# So if the application inside the container listens on 8080, you can access it at localhost:5097.
-
-# --name api-catalog → Gives the container the name api-catalog for easy identification.
-
-# api-catalog-img → Specifies the Docker image used to create the container.
-
-# Use official .NET runtime image
+# Questa fase viene usata durante l'esecuzione da Visual Studio in modalità rapida (impostazione predefinita per la configurazione di debug)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+USER $APP_UID
 WORKDIR /app
-EXPOSE 80
+EXPOSE 8080
+EXPOSE 8081
 
-# Build stage
+
+# Questa fase viene usata per compilare il progetto di servizio
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-
-RUN pwd
-
+COPY ["CatalogService/CatalogService.Api/CatalogService.Api.csproj", "CatalogService/CatalogService.Api/"]
+COPY ["CatalogService/CatalogService.Application/CatalogService.Application.csproj", "CatalogService/CatalogService.Application/"]
+COPY ["CatalogService/CatalogService.Domain/CatalogService.Domain.csproj", "CatalogService/CatalogService.Domain/"]
+COPY ["CatalogService/CatalogService.Infrastructure/CatalogService.Infrastructure.csproj", "CatalogService/CatalogService.Infrastructure/"]
+RUN dotnet restore "./CatalogService/CatalogService.Api/CatalogService.Api.csproj"
 COPY . .
-CMD ["ls", "-l", "/src"]
-RUN ls -l
-# WORKDIR "/src"
-RUN dotnet restore "CatalogService.Api.csproj"
-RUN dotnet publish -c Release -o /app
+WORKDIR "/src/CatalogService/CatalogService.Api"
+RUN dotnet build "./CatalogService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# Run stage
+# Questa fase viene usata per pubblicare il progetto di servizio da copiare nella fase finale
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./CatalogService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# Questa fase viene usata nell'ambiente di produzione o durante l'esecuzione da Visual Studio in modalità normale (impostazione predefinita quando non si usa la configurazione di debug)
 FROM base AS final
 WORKDIR /app
-COPY --from=build /app .
+COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "CatalogService.Api.dll"]

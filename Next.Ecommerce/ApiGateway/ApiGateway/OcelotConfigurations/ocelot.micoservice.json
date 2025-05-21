@@ -1,28 +1,55 @@
 {
   "Routes": [
     {
-        "DownstreamPathTemplate": "/api/catalog/{everything}",
-        "DownstreamScheme": "http",
-        "DownstreamHostAndPorts": [
-            {
-                "Host": "api-catalog",
-                "Port": 8080
-            }
-        ],
-        "UpstreamPathTemplate": "/apigateway/catalog/{everything}",
-        "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+      "DownstreamPathTemplate": "/api/catalog/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "api-catalog",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/apigateway/catalog/{everything}",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete"
+      ]
     },
     {
       "DownstreamPathTemplate": "/api/orders/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
-           "Host": "api-order",
-           "Port": 8080
+          "Host": "api-order",
+          "Port": 8080
         }
       ],
       "UpstreamPathTemplate": "/apigateway/orders/{everything}",
-      "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/basket/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "api-basket",
+          "Port": 8080
+        }
+      ],
+      "UpstreamPathTemplate": "/apigateway/basket/{everything}",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete"
+      ]
     }
   ]
 }

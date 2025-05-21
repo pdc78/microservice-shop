@@ -21,7 +21,17 @@ services:
       - "5096:8080"
     networks:
       - shop-network
-
+      
+  api-basket:
+    container_name: api-basket
+    image: api-basket-img
+    build:
+      context: ./microservices/basketservice
+      dockerfile: Dockerfile
+    ports:
+      - "5095:8080"
+    networks:
+      - shop-network
   api-gateway:
     container_name: api-gateway
     image: api-gateway-img

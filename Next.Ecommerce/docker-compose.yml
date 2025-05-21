@@ -50,6 +50,7 @@ services:
       - api-gateway
     environment:
       - API_GATEWAY_URL=http://api-gateway:8080
+     # - ASPNETCORE_ENVIRONMENT=Development
 networks:
   shop-network:
     driver: bridge

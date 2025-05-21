@@ -1,10 +1,16 @@
-var builder = WebApplication.CreateBuilder(args);
-// builder.Services.AddHttpClient<ProductController>();
+using eShop.ApiClients;
+using eShop.Services;
+using eShop.Services.Interfaces;
 
-// builder.Services.AddHttpClient("ApiGateway", client =>
-// {
-//     client.BaseAddress = new Uri("http://api-gateway:8080/");
-// });
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHttpClient<ICatalogApiClient, CatalogApiClient>(client =>
+{
+     client.BaseAddress = new Uri(builder.Configuration["API_GATEWAY_URL"]);
+});
+
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

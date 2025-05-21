@@ -4,7 +4,7 @@ services:
     container_name: api-catalog
     image: api-catalog-img
     build:
-      context: ./microservices/catalogservice/catalogservice.api
+      context: ./microservices/catalogservice
       dockerfile: Dockerfile
     ports:
       - "5097:8080"
@@ -15,7 +15,7 @@ services:
     container_name: api-order
     image: api-order-img
     build:
-      context: ./microservices/orderservice/orderservice.api
+      context: ./microservices/orderservice
       dockerfile: Dockerfile
     ports:
       - "5096:8080"

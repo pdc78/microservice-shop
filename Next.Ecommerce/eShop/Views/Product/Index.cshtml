@@ -1,21 +1,40 @@
-@using eShop.Models
-@model List<ProductDto>
-    
-<h2>Product Catalog</h2>
+@model eShop.ViewModels.ProductCatalogViewModel
 
-@if (Model.Count == 0)
-{
-    <p>No products available.</p>
+@{
+    var userId = "pier"; // o da context
 }
-else
-{
-    <ul>
-        @foreach (var product in Model)
+
+<div class="row">
+    <div class="col-md-8">
+        <h2>Product Catalog</h2>
+
+        @if (!Model.Products.Any())
         {
-            <li>
-                <strong>@product.Name</strong> - @product.Description <br />
-                <em>@product.Price €</em>
-            </li>
+            <p>No products available.</p>
         }
-    </ul>
-}
+        else
+        {
+            <ul class="list-group">
+                @foreach (var product in Model.Products)
+                {
+                    <li class="list-group-item">
+                        <strong>@product.Name</strong> - @product.Description <br />
+                        <em>@product.Price €</em>
+
+                        <form asp-controller="Basket" asp-action="AddItem" method="post" class="mt-2">
+                            <input type="hidden" name="userId" value="@userId" />
+                            <input type="hidden" name="productId" value="@product.Id" />
+                            <input type="hidden" name="productName" value="@product.Name" />
+                            <input type="hidden" name="unitPrice" value="@product.Price" />
+                            <button class="btn btn-primary btn-sm">Add to Basket</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    @* <div class="col-md-4">
+        @await Html.PartialAsync("_BasketPartial", Model.Basket)
+    </div> *@
+</div>

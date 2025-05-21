@@ -32,6 +32,7 @@ services:
       - "5095:8080"
     networks:
       - shop-network
+      
   api-gateway:
     container_name: api-gateway
     image: api-gateway-img

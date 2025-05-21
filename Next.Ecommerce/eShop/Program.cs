@@ -11,6 +11,7 @@ builder.Services.AddHttpClient<ICatalogApiClient, CatalogApiClient>(client =>
 
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IBasketService, BasketService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

@@ -19,6 +19,14 @@ public class ProductService : IProductSetrvice
         return _productRepository.GetAllAsync();
     }
 
+    public async Task<IEnumerable<Product>> GetPaginatedProductsAsync(int pageNumber, int pageSize)
+    {
+        var allProducts = await _productRepository.GetAllAsync();
+        return allProducts
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize);
+    }
+
     public async Task<IEnumerable<Product>> SearchProductsAsync(string query)
     {
         var allProducts = await _productRepository.GetAllAsync();

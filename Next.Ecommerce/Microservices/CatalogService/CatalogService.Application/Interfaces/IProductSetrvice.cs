@@ -6,5 +6,6 @@ namespace CatalogService.Application.Interfaces
     {
         Task<IEnumerable<Product>> GetAllProductsAsync();
         Task<IEnumerable<Product>> SearchProductsAsync(string query);
+        Task<IEnumerable<Product>> GetPaginatedProductsAsync(int pageNumber,int pageSize);
     }
 }

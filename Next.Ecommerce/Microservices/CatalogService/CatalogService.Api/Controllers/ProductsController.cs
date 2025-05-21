@@ -19,14 +19,14 @@ namespace CatalogService.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductDto>>> Get()
+        public async Task<ActionResult<IEnumerable<ProductDto>>> Get([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            var products = await _productService.GetAllProductsAsync();
-            var productDtos = new List<ProductDto>();
-            foreach (var p in products)
-            {
-                productDtos.Add(p.ToDto());
-            }
+            if (pageNumber <= 0 || pageSize <= 0)
+                return BadRequest("Page number and page size must be greater than zero.");
+
+            var products = await _productService.GetPaginatedProductsAsync(pageNumber, pageSize);
+            var productDtos = products.Select(p => p.ToDto());
+
             return Ok(productDtos);
         }
 
@@ -41,5 +41,6 @@ namespace CatalogService.Api.Controllers
 
             return Ok(productDtos);
         }
+
     }
 }

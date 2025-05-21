@@ -12,7 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IProductSetrvice, ProductService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
-
 builder.Services.AddDbContext<CatalogDbContext>(options =>
     options.UseInMemoryDatabase("CatalogDb"));  // For testing/demo purposes
 

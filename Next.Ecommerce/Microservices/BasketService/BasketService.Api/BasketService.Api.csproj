@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BasketService.Application\BasketService.Application.csproj" />
-    <ProjectReference Include="..\BasketService.Domain\BasketService.Domain.csproj" />
+    <ProjectReference Include="..\BasketService.Infrastructure\BasketService.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

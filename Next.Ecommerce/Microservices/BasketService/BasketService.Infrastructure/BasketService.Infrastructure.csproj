@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BasketService.Application\BasketService.Application.csproj" />
     <ProjectReference Include="..\BasketService.Domain\BasketService.Domain.csproj" />
   </ItemGroup>

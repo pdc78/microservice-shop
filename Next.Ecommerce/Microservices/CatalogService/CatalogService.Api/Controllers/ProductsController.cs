@@ -1,10 +1,9 @@
 ﻿using CatalogService.Api.DTOs;
 using CatalogService.Api.Extensions;
+using CatalogService.Application.Exceptions;
 using CatalogService.Application.Interfaces;
-using CatalogService.Application.Services;
-using CatalogService.Domain.Entities;
-using CatalogService.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using ValidationException = CatalogService.Application.Exceptions.ValidationException;
 
 namespace CatalogService.Api.Controllers
 {
@@ -13,34 +12,59 @@ namespace CatalogService.Api.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly IProductSetrvice _productService;
-        public ProductsController(IProductSetrvice productService)
+        private readonly ILogger<ProductsController> _logger;
+        public ProductsController(ILogger<ProductsController> logger, IProductSetrvice productService)
         {
             _productService = productService;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProductDto>>> Get([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
-            if (pageNumber <= 0 || pageSize <= 0)
-                return BadRequest("Page number and page size must be greater than zero.");
+            try
+            {
+                if (pageNumber <= 0 || pageSize <= 0)
+                    throw new ArgumentOutOfRangeException("pageNumber", "Page number must be greater than zero.");
 
-            var products = await _productService.GetPaginatedProductsAsync(pageNumber, pageSize);
-            var productDtos = products.Select(p => p.ToDto());
+                var products = await _productService.GetPaginatedProductsAsync(pageNumber, pageSize);
 
-            return Ok(productDtos);
+                if (!products.Any())
+                    throw new NotFoundException("No products found for the requested page.");
+
+                var productDtos = products.Select(p => p.ToDto());
+                return Ok(productDtos);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed in GetProducts endpoint: {Message}", ex.Message);
+                throw; // re-throw to be handled by the middleware
+            }
+            catch (NotFoundException ex)
+            {
+                _logger.LogInformation(ex, "No products found: {Message}", ex.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error occurred in GetProducts endpoint.");
+                throw;
+            }
         }
 
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<ProductDto>>> Search([FromQuery] string query)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return BadRequest("Query string cannot be empty.");
+                throw new ValidationException("query","Query string cannot be empty.");
+
 
             var products = await _productService.SearchProductsAsync(query);
-            var productDtos = products.Select(p => p.ToDto());
+            if (!products.Any())
+                throw new NotFoundException($"No products found matching: '{query}'");
 
+            var productDtos = products.Select(p => p.ToDto());
             return Ok(productDtos);
         }
-
     }
 }

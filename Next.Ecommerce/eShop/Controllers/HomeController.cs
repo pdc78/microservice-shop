@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using eShop.Models;
-using System.Text.Json;
 using eShop.Services.Interfaces;
 
 namespace eShop.Controllers;

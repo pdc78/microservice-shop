@@ -1,3 +1,4 @@
+using CatalogService.Api.Middlewares;
 using CatalogService.API.Data;
 using CatalogService.Application.Interfaces;
 using CatalogService.Application.Services;
@@ -46,27 +47,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-//// http://localhost:5096/api/catalog/products
-//var products = new[]
-//{
-//    new Product(1, "Laptop", "High-performance laptop", 1299.99),
-//    new Product(2, "Smartphone", "Latest model smartphone", 899.99),
-//    new Product(3, "Headphones", "Noise-canceling headphones", 199.99),
-//    new Product(4, "Smartwatch", "Feature-rich smartwatch", 249.99),
-//    new Product(5, "Gaming Console", "Next-gen gaming console", 499.99),
-//    new Product(6, "Gaming Console 2", "Next-gen gaming console", 499.99)
-//};
-
-//// Ensure the endpoint matches the Ocelot configuration
-//app.MapGet("/api/catalog/products", () =>
-//{
-//    return products;
-//})
-//.WithName("GetProducts");
 
 app.MapControllers();
 
 app.Run();
 
-//record Product(int Id, string Name, string Description, double Price);

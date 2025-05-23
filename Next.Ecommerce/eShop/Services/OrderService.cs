@@ -7,15 +7,15 @@ namespace eShop.Services;
 
 public class OrderService : IOrderService
 {
-    private readonly ICatalogApiClient _catalogApiClient;
+    private readonly IOrderApiClient _orderApiClient;
 
-    public OrderService(ICatalogApiClient catalogApiClient)
+    public OrderService(IOrderApiClient orderApiClient)
     {
-        _catalogApiClient = catalogApiClient;
+        _orderApiClient = orderApiClient;
     }
 
     public Task<List<OrderDto>> GetOrdersAsync()
     {
-        return _catalogApiClient.GetAllOrdersAsync();
+        return _orderApiClient.GetAllOrdersAsync();
     }
 }

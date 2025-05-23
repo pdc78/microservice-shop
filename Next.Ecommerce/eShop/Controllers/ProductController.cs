@@ -18,12 +18,18 @@ namespace eShop.Controllers
         }
 
 
-        public async Task<IActionResult> Index2()
+        public async Task<IActionResult> Index()
         {
             try
             {
                 var products = await _productService.GetProductsAsync();
-                return View(products);
+                var model = new ProductCatalogViewModel
+                {
+                    Products = products,
+                    Basket = null
+                };
+
+                return View(model);
             }
             catch (Exception ex)
             {
@@ -33,7 +39,7 @@ namespace eShop.Controllers
                 throw;
             }
         }
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index2()
         {
             try
             {

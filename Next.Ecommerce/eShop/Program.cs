@@ -1,13 +1,19 @@
 using eShop.ApiClients;
 using eShop.Services;
 using eShop.Services.Interfaces;
+using eShop.Strategies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient<ICatalogApiClient, CatalogApiClient>(client =>
+builder.Services.AddHttpClient<IHttpStrategy, HttpClientStrategy>(client =>
 {
-     client.BaseAddress = new Uri(builder.Configuration["API_GATEWAY_URL"]);
+    client.BaseAddress = new Uri(builder.Configuration["API_GATEWAY_URL"]);
 });
+
+builder.Services.AddScoped<IBasketApiClient, BasketApiClient>();
+builder.Services.AddScoped<ICatalogApiClient, CatalogApiClient>();
+builder.Services.AddScoped<IOrderApiClient, OrderApiClient>();
+
 
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IProductService, ProductService>();

@@ -6,37 +6,37 @@ namespace eShop.Services
 {
     public class BasketService : IBasketService
     {
-        private readonly ICatalogApiClient _catalogApiClient;
+        private readonly IBasketApiClient _basketApiClient;
 
-        public BasketService(ICatalogApiClient catalogApiClient)
+        public BasketService(IBasketApiClient catalogApiClient)
         {
-            _catalogApiClient = catalogApiClient;
+            _basketApiClient = catalogApiClient;
         }
 
         public async Task<BasketDto?> GetBasketAsync(string userId)
         {
-            return await _catalogApiClient.GetBasketAsync(userId);
+            return await _basketApiClient.GetBasketAsync(userId);
         }
 
         public async Task CreateBasketAsync(string userId)
         {
             var dto = new CreateBasketDto { UserId = userId };
-            await _catalogApiClient.CreateBasketAsync(dto);
+            await _basketApiClient.CreateBasketAsync(dto);
         }
 
         public async Task AddItemAsync(string userId, AddBasketItemDto item)
         {
-            await _catalogApiClient.AddItemAsync(userId, item);
+            await _basketApiClient.AddItemAsync(userId, item);
         }
 
         public async Task RemoveItemAsync(string userId, Guid productId)
         {
-            await _catalogApiClient.RemoveItemAsync(userId, productId);
+            await _basketApiClient.RemoveItemAsync(userId, productId);
         }
 
         public async Task DeleteBasketAsync(string userId)
         {
-            await _catalogApiClient.DeleteBasketAsync(userId);
+            await _basketApiClient.DeleteBasketAsync(userId);
         }
     }
 }

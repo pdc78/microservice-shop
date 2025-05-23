@@ -4,6 +4,6 @@ namespace BasketService.Application.Interfaces;
 public interface IBasketRepository
 {
     Task<Basket?> GetByUserIdAsync(string userId);
-    Task AddOrUpdateAsync(Basket basket);
+    Task SaveAsync(Basket basket);
     Task DeleteAsync(string userId);
 }

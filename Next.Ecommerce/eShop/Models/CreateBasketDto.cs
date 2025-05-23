@@ -1,8 +1,5 @@
 ﻿namespace eShop.Models;
-public class AddBasketItemDto
+public class CreateBasketDto
 {
-    public Guid ProductId { get; set; }
-    public string ProductName { get; set; } = default!;
-    public int Quantity { get; set; }
-    public decimal UnitPrice { get; set; }
+    public string UserId { get; set; } = default!;
 }

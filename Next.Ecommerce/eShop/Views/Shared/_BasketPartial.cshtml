@@ -1,0 +1,51 @@
+@model eShop.Models.BasketDto
+
+<h3>Your Basket</h3>
+
+@if (Model == null || Model.Items.Count == 0)
+{
+    <p>The basket is empty.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@item.ProductName</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.UnitPrice €</td>
+                    <td>
+                        <form asp-controller="Basket" asp-action="RemoveItem" method="post">
+                            <input type="hidden" name="userId" value="@Model.UserId" />
+                            <input type="hidden" name="productId" value="@item.ProductId" />
+                            <button class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="d-flex justify-content-between mt-3">
+        <!-- Clear Basket Button -->
+        <form asp-controller="Basket" asp-action="DeleteBasket" method="post" class="me-2">
+            <input type="hidden" name="userId" value="@Model.UserId" />
+            <button type="submit" class="btn btn-warning">Clear Basket</button>
+        </form>
+
+        <!-- Create Order Button -->
+        <form asp-controller="Order" asp-action="CreateOrder" method="post">
+            <input type="hidden" name="userId" value="@Model.UserId" />
+            <button type="submit" class="btn btn-success">Create Order</button>
+        </form>
+    </div>
+}

@@ -12,7 +12,7 @@ WORKDIR  /src
 COPY ["BasketService.Api/BasketService.Api.csproj", "BasketService.Api/"]
 COPY ["BasketService.Domain/BasketService.Domain.csproj", "BasketService.Domain/"]
 COPY ["BasketService.Application/BasketService.Application.csproj", "BasketService.Application/"]
-# COPY ["BasketService.Infrastructure/BasketService.Infrastructure.csproj", "BasketService.Infrastructure/"]
+COPY ["BasketService.Infrastructure/BasketService.Infrastructure.csproj", "BasketService.Infrastructure/"]
 
 RUN dotnet restore "BasketService.Api/BasketService.Api.csproj"
 

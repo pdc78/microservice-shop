@@ -18,14 +18,6 @@ public class BasketController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost]
-    public async Task<ActionResult<Basket>> CreateBasket([FromBody] CreateBasketDto dto)
-    {
-        var basket = await _cartService.CreateBasketAsync(dto.UserId);
-        var basketDto = BasketDtoFactory.Create(basket);
-        return Ok(dto);
-    }
-
     [HttpGet("{userId}")]
     public async Task<ActionResult<Basket>> GetBasket(string userId)
     {

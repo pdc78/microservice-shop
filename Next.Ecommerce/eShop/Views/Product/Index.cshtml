@@ -1,9 +1,5 @@
 @model eShop.ViewModels.ProductCatalogViewModel
 
-@{
-    var userId = "pier"; // o da context
-}
-
 <div class="row">
     <div class="col-md-8">
         <h2>Product Catalog</h2>
@@ -22,7 +18,7 @@
                         <em>@product.Price €</em>
 
                         <form asp-controller="Basket" asp-action="AddItem" method="post" class="mt-2">
-                            <input type="hidden" name="userId" value="@userId" />
+                            <input type="hidden" name="userId" value="@Model.UserId" />
                             <input type="hidden" name="productId" value="@product.Id" />
                             <input type="hidden" name="productName" value="@product.Name" />
                             <input type="hidden" name="unitPrice" value="@product.Price" />
@@ -34,7 +30,7 @@
         }
     </div>
 
-@*     <div class="col-md-4">
+    <div class="col-md-4">
         @await Html.PartialAsync("_BasketPartial", Model.Basket)
-    </div> *@
+    </div>
 </div>

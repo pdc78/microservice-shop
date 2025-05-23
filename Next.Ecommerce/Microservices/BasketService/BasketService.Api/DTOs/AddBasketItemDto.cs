@@ -1,5 +1,8 @@
 ﻿namespace BasketService.Api.DTOs;
-public class CreateBasketDto
+public class AddBasketItemDto
 {
-    public string UserId { get; set; } = default!;
+    public Guid ProductId { get; set; }
+    public string ProductName { get; set; } = default!;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
 }

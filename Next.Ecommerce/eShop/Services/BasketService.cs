@@ -18,12 +18,6 @@ namespace eShop.Services
             return await _basketApiClient.GetBasketAsync(userId);
         }
 
-        public async Task CreateBasketAsync(string userId)
-        {
-            var dto = new CreateBasketDto { UserId = userId };
-            await _basketApiClient.CreateBasketAsync(dto);
-        }
-
         public async Task AddItemAsync(string userId, AddBasketItemDto item)
         {
             await _basketApiClient.AddItemAsync(userId, item);

@@ -28,7 +28,23 @@ internal class Program
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
+            //http://localhost:5075/openapi/v1.json
             app.MapOpenApi();
+
+            //http://localhost:5075/swagger/
+            app.UseSwaggerUI(options =>
+            {
+                options.SwaggerEndpoint("/openapi/v1.json", "OpenApi V1");
+            });
+
+            ////http://localhost:5075/api-docs
+            //app.UseReDoc(options =>
+            //{
+            //    options.SpecUrl("/openapi/v1.json");
+            //});
+
+            ////http://localhost:5075/scalar
+            //app.MapScalarApiReference();
         }
 
         app.UseHttpsRedirection();

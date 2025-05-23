@@ -3,7 +3,6 @@
 namespace BasketService.Application.Interfaces;
 public interface ICartService
 {
-    Task<Basket> CreateBasketAsync(string userId);
     Task<Basket> AddItemAsync(string userId, BasketItem item);
     Task<Basket?> GetBasketAsync(string userId);
     Task RemoveItemAsync(string userId, Guid productId);

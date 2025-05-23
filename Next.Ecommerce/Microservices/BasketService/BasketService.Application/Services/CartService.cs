@@ -11,16 +11,6 @@ public class CartService : ICartService
         _repository = repository;
     }
 
-    public async Task<Basket> CreateBasketAsync(string userId)
-    {
-        var existing = await _repository.GetByUserIdAsync(userId);
-        if (existing != null)
-            return existing; // optionally throw exception if you want strict "create only"
-
-        var basket = new Basket { UserId = userId };
-        await _repository.AddOrUpdateAsync(basket);
-        return basket;
-    }
 
     public async Task<Basket> AddItemAsync(string userId, BasketItem item)
     {
@@ -31,7 +21,11 @@ public class CartService : ICartService
         return basket;
     }
 
-    public Task<Basket?> GetBasketAsync(string userId) => _repository.GetByUserIdAsync(userId);
+    public async Task<Basket?> GetBasketAsync(string userId)
+    {
+        var basket = await _repository.GetByUserIdAsync(userId) ?? new Basket { UserId = userId };
+        return basket;
+    }
 
     public async Task RemoveItemAsync(string userId, Guid productId)
     {

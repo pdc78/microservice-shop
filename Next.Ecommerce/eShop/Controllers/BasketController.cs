@@ -31,14 +31,21 @@ namespace eShop.Controllers
             };
 
             await _basketService.AddItemAsync(userId, item);
-            return RedirectToAction("Index", new { userId });
+            return RedirectToAction("Index", "Product", new { userId });
         }
 
         [HttpPost]
         public async Task<IActionResult> RemoveItem(string userId, Guid productId)
         {
             await _basketService.RemoveItemAsync(userId, productId);
-            return RedirectToAction("Index", new { userId });
+            return RedirectToAction("Index", "Product", new { userId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteBasket(string userId)
+        {
+            await _basketService.DeleteBasketAsync(userId);
+            return RedirectToAction("Index", "Product", new { userId });
         }
     }
 }

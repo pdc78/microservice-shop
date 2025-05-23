@@ -15,9 +15,8 @@ public class CartService : ICartService
     public async Task<Basket> AddItemAsync(string userId, BasketItem item)
     {
         var basket = await _repository.GetByUserIdAsync(userId) ?? new Basket { UserId = userId };
-        basket.Items.Add(item);
-
-        await _repository.AddOrUpdateAsync(basket);
+        basket.AddOrUpdateItem(item); // Use domain logic
+        await _repository.SaveAsync(basket);
         return basket;
     }
 
@@ -32,12 +31,8 @@ public class CartService : ICartService
         var basket = await _repository.GetByUserIdAsync(userId);
         if (basket == null) return;
 
-        var item = basket.Items.FirstOrDefault(i => i.ProductId == productId);
-        if (item != null)
-        {
-            basket.Items.Remove(item);
-            await _repository.AddOrUpdateAsync(basket);
-        }
+        basket.RemoveItem(productId);
+        await _repository.SaveAsync(basket);
     }
 
     public Task DeleteBasketAsync(string userId) => _repository.DeleteAsync(userId);

@@ -21,41 +21,19 @@ public class BasketRepository : IBasketRepository
             .Include(b => b.Items)
             .FirstOrDefaultAsync(b => b.UserId == userId);
     }
-
-    public async Task AddOrUpdateAsync(Basket basket)
+    public async Task SaveAsync(Basket basket)
     {
         var existing = await _context.Baskets
-          .Include(b => b.Items)
-          .FirstOrDefaultAsync(b => b.UserId == basket.UserId);
+            .Include(b => b.Items)
+            .FirstOrDefaultAsync(b => b.UserId == basket.UserId);
 
         if (existing == null)
         {
-            _context.Baskets.Add(basket); // new basket
+            _context.Baskets.Add(basket);
         }
         else
         {
-            foreach (var newItem in basket.Items)
-            {
-                var existingItem = existing.Items
-                    .FirstOrDefault(i => i.ProductId == newItem.ProductId);
-
-                if (existingItem != null)
-                {
-                    existingItem.Quantity += newItem.Quantity;
-                }
-                else
-                {
-                    // Do NOT reuse incoming BasketItem – recreate it
-                    existing.Items.Add(new BasketItem
-                    {
-                        ProductId = newItem.ProductId,
-                        ProductName = newItem.ProductName,
-                        Quantity = newItem.Quantity,
-                        UnitPrice = newItem.UnitPrice,
-                        BasketId = existing.Id
-                    });
-                }
-            }
+            existing.Items = basket.Items;
         }
 
         await _context.SaveChangesAsync();

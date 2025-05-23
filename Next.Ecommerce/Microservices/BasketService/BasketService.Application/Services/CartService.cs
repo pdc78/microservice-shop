@@ -11,11 +11,10 @@ public class CartService : ICartService
         _repository = repository;
     }
 
-
     public async Task<Basket> AddItemAsync(string userId, BasketItem item)
     {
         var basket = await _repository.GetByUserIdAsync(userId) ?? new Basket { UserId = userId };
-        basket.AddOrUpdateItem(item); // Use domain logic
+        basket.AddOrUpdateItem(item);
         await _repository.SaveAsync(basket);
         return basket;
     }

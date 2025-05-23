@@ -21,7 +21,7 @@ public class BasketDbContext : DbContext
             .HasOne(i => i.Basket)
             .WithMany(b => b.Items)
             .HasForeignKey(i => i.BasketId)
-            .OnDelete(DeleteBehavior.Cascade); // Important!
+            .OnDelete(DeleteBehavior.Cascade);
 
         base.OnModelCreating(modelBuilder);
     }

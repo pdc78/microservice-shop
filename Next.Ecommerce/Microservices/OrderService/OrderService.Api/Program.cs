@@ -1,33 +1,42 @@
+using CatalogService.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using OrderService.Application.Interfaces;
+using OrderService.Application.Services;
+using OrderService.Infrastructure.Data;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<OrderDbContext>(options =>
+    options.UseInMemoryDatabase("OrderDb"));
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderProcessingService>();
+// Register repositories and services
+
+builder.Services.AddControllers();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    //http://localhost:5242/openapi/v1.json
     app.MapOpenApi();
+
+    //http://localhost:5242/swagger/
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "OpenApi V1");
+    });
 }
 
 app.UseHttpsRedirection();
-
-var orders = new[]
-{
-    new Order(1, "John Doe", new[] { "Laptop", "Mouse" }, 1499.99),
-    new Order(2, "Jane Smith", new[] { "Smartphone" }, 899.99),
-    new Order(3, "Alice Johnson", new[] { "Headphones", "Smartwatch" }, 349.99),
-    new Order(4, "Bob Williams", new[] { "Gaming Console", "Controller" }, 599.99)
-};
-
-app.MapGet("/api/orders", () =>
-{
-    return orders;
-})
-.WithName("GetOrders");
-
+app.MapControllers();
 app.Run();
 
-record Order(int Id, string CustomerName, string[] Items, double TotalPrice);

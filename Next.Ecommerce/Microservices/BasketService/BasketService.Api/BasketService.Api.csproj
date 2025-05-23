@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CatalogService\CatalogService.Api\CatalogService.Api.csproj" />
     <ProjectReference Include="..\BasketService.Application\BasketService.Application.csproj" />
     <ProjectReference Include="..\BasketService.Infrastructure\BasketService.Infrastructure.csproj" />
   </ItemGroup>

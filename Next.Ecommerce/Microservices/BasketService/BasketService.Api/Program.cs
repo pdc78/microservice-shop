@@ -1,5 +1,6 @@
 using BasketService.Application.Interfaces;
 using BasketService.Application.Services;
+using CatalogService.Api.Middlewares;
 using CatalogService.Infrastructure.Data;
 using CatalogService.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -36,19 +37,10 @@ internal class Program
             {
                 options.SwaggerEndpoint("/openapi/v1.json", "OpenApi V1");
             });
-
-            ////http://localhost:5075/api-docs
-            //app.UseReDoc(options =>
-            //{
-            //    options.SpecUrl("/openapi/v1.json");
-            //});
-
-            ////http://localhost:5075/scalar
-            //app.MapScalarApiReference();
         }
 
         app.UseHttpsRedirection();
-        //app.UseMiddleware<ExceptionHandlingMiddleware>();
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         app.MapControllers();
         app.Run();

@@ -9,7 +9,7 @@ namespace eShop.Controllers
         private readonly ILogger<ProductController> _logger;
         private readonly IProductService _productService;
         private readonly IBasketService _basketService; // You need to add this service
-        private readonly string userId = "pier";
+        private readonly string userId = "Jesper";
         public ProductController(ILogger<ProductController> logger, IProductService productService, IBasketService basketService)
         {
             _logger = logger;

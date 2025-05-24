@@ -1,43 +1,20 @@
-using BasketService.Application.Interfaces;
-using BasketService.Application.Services;
-using CatalogService.Infrastructure.Data;
-using CatalogService.Infrastructure.Repositories;
-using Microsoft.EntityFrameworkCore;
+using BasketService.Application;
+using BasketService.Infrastructure;
+using BasketService.API;
 
-internal class Program
-{
-    private static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddDbContext<BasketDbContext>(options =>
-            options.UseInMemoryDatabase("BasketDb"));
+// Modular service registrations
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
 
-        builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+builder.Services.AddControllers();
+builder.Services.AddOpenApi();
 
-        builder.Services.AddScoped<ICartService, CartService>();
-        builder.Services.AddControllers();
-        builder.Services.AddOpenApi();
+var app = builder.Build();
 
-        var app = builder.Build();
+app.UseSwaggerDocs();
+app.UseHttpsRedirection();
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            //http://localhost:5075/openapi/v1.json
-            app.MapOpenApi();
-
-            //http://localhost:5075/swagger/
-            app.UseSwaggerUI(options =>
-            {
-                options.SwaggerEndpoint("/openapi/v1.json", "OpenApi V1");
-            });
-        }
-
-        app.UseHttpsRedirection();
-        //app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-        app.MapControllers();
-        app.Run();
-    }
-}
+app.MapControllers();
+app.Run();

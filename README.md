@@ -1,5 +1,9 @@
 # Cloud-Based Microservices Architecture for E-Commerce
 
+### **Architecture Diagram**
+![Architecture Diagram](./img/solution-Architecture.drawio.png)  
+
+
 ## Overview
 This project implements a cloud-based **microservices architecture** for an e-commerce application, focusing on:
 - **Accessibility** (WCAG compliance, multi-device usability)
@@ -72,9 +76,6 @@ This project implements a cloud-based **microservices architecture** for an e-co
 - **Automated testing and monitoring** maintain **high service quality**.
 - **Real-time failover mechanisms enhance fault tolerance**.
 
-### **Architecture Diagram**
-![Architecture Diagram](https://example.com/architecture-image.png)  
-_(Replace with actual image link)_
 
 ---
 

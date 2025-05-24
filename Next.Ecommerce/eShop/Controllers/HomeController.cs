@@ -16,10 +16,9 @@ public class HomeController : Controller
         _orderService = orderService;
     }
 
-    public async Task<IActionResult> Index()
+    public IActionResult Index()
     {
-        var orders = await _orderService.GetOrdersAsync();
-        return View(orders);
+        return View();
     }
 
     public IActionResult Privacy()

@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OrderService.Api.DTOs;
 using OrderService.Application.Interfaces;
 using OrderService.Domain.DTOs;
 
 namespace BasketService.Api.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/order")]
 public class OrderController : ControllerBase
 {
     private readonly IOrderService _orderService;
@@ -14,19 +15,23 @@ public class OrderController : ControllerBase
     {
         _orderService = orderService;
     }
-
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] BasketDto basket)
+    public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] BasketDto basket)
     {
-        var orderId = await _orderService.CreateOrderAsync(basket);
-        var result= CreatedAtAction(nameof(GetOrder), new { id = orderId }, new { OrderId = orderId });
-        return result;
-    }
+        if (basket == null || string.IsNullOrWhiteSpace(basket.UserId) || basket.Items == null || !basket.Items.Any())
+        {
+            return BadRequest("Invalid basket data.");
+        }
 
-    [HttpGet("{id}")]
-    public IActionResult GetOrder(Guid id)
-    {
-        // Optional placeholder for retrieving order
-        return Ok(new { Message = $"Order {id} created successfully." });
+        try
+        {
+            var orderId = await _orderService.CreateOrderAsync(basket);
+            return Ok(new OrderDto { Id = orderId });
+        }
+        catch (Exception ex)
+        {
+            // Log the error (you can use ILogger if configured)
+            return StatusCode(500, $"An error occurred while creating the order: {ex.Message}");
+        }
     }
 }

@@ -8,14 +8,17 @@ namespace eShop.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderApiClient _orderApiClient;
+    private readonly ILogger<OrderService> _logger;
 
-    public OrderService(IOrderApiClient orderApiClient)
+    public OrderService(IOrderApiClient orderApiClient, ILogger<OrderService> logger)
     {
         _orderApiClient = orderApiClient;
+        _logger = logger;
     }
 
-    public Task<List<OrderDto>> GetOrdersAsync()
+    public async Task<OrderDto> CreateOrdersAsync(BasketDto basket)
     {
-        return _orderApiClient.GetAllOrdersAsync();
+        _logger.LogInformation($"{nameof(OrderService)} calling CreateOrderAsync");
+        return await _orderApiClient.CreateOrderAsync(basket);
     }
 }

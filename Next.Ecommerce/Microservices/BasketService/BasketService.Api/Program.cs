@@ -1,6 +1,5 @@
 using BasketService.Application.Interfaces;
 using BasketService.Application.Services;
-using CatalogService.Api.Middlewares;
 using CatalogService.Infrastructure.Data;
 using CatalogService.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -16,13 +15,9 @@ internal class Program
 
         builder.Services.AddScoped<IBasketRepository, BasketRepository>();
 
-        // Register repositories and services
         builder.Services.AddScoped<ICartService, CartService>();
         builder.Services.AddControllers();
-        // Add services to the container.
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
-
 
         var app = builder.Build();
 
@@ -40,7 +35,7 @@ internal class Program
         }
 
         app.UseHttpsRedirection();
-        app.UseMiddleware<ExceptionHandlingMiddleware>();
+        //app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         app.MapControllers();
         app.Run();

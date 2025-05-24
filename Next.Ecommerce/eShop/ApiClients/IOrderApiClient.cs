@@ -3,6 +3,5 @@
 namespace eShop.ApiClients;
 public interface IOrderApiClient
 {
-    Task<List<OrderDto>> GetAllOrdersAsync();
-    Task CreateOrderAsync(CreateBasketDto dto);
+    Task<OrderDto> CreateOrderAsync(BasketDto basket);
 }

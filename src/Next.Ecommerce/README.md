@@ -9,6 +9,7 @@ Before running the application, ensure the following tools are installed:
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
 ## Getting Started
+![Docker-Desktop](../../img/docker-containers.jpg)  
 
 ### 1️⃣ Clone the Repository
 First, clone the project repository:

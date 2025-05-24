@@ -38,11 +38,11 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 
-    ////http://localhost:5091/swagger/
-    //app.UseSwaggerUI(options =>
-    //{
-    //    options.SwaggerEndpoint("/openapi/v1.json", "OpenApi V1");
-    //});
+    //http://localhost:5091/swagger/
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "OpenApi V1");
+    });
 }
 
 app.UseHttpsRedirection();

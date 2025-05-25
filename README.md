@@ -77,6 +77,9 @@ This project implements a cloud-based **microservices architecture** for an e-co
 - **Real-time failover mechanisms enhance fault tolerance**.
 
 
----
+### WebSite
 
-This update emphasizes exactly where each design principle is embedded in the architecture. Let me know if you’d like any refinements! 🚀
+![HomePage](./img/home.jpg)
+
+
+![Catalog](./img/catalog.jpg)

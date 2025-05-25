@@ -45,7 +45,6 @@
 
 This guide explains how to run the `OrderReportFunction` Azure Function locally using the Azure Functions Core Tools and .NET SDK.
 
----
 
 ## 🚀 Prerequisites
 
@@ -60,11 +59,12 @@ Use the following command to install Azure Functions Core Tools globally:
 ```bash
 npm install -g azure-functions-core-tools@4 --unsafe-perm true
 
-cd AzureFunctionOrderReport/OrderReportFunction
+cd AzFunctionOrderReport/OrderReportFunction
 
 
 dotnet restore
 
 func start
+```
 
 ![Docker-Desktop](../../img/az-function.jpg)  

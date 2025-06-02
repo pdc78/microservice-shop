@@ -3,15 +3,30 @@ using Microsoft.EntityFrameworkCore;
 using OrderService.Application.Interfaces;
 using OrderService.Application.Services;
 using OrderService.Infrastructure.Data;
+using Azure.Messaging.ServiceBus;
+using OrderService.Infrastructure.ServiceBus;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Register repositories and services
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseInMemoryDatabase("OrderDb"));
-
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderProcessingService>();
-// Register repositories and services
+
+
+// Register Azure Service Bus client
+builder.Services.AddSingleton(new ServiceBusClient(
+ builder.Configuration.GetConnectionString("ServiceBusConnection")));
+
+// Register your publisher
+builder.Services.AddScoped<IServiceBusPublisher, AzureServiceBusPublisher>();
+
+// Register the Saga Orchestrator
+builder.Services.AddScoped<ISagaOrchestratorService, SagaOrchestratorService>();
+
+// Register other services like IOrderService, etc.
+builder.Services.AddScoped<IOrderService, OrderProcessingService>();
 
 builder.Services.AddControllers();
 

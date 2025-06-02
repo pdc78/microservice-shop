@@ -13,16 +13,17 @@ public class InventoryProcessorService : IInventoryService
 
     public InventoryProcessorService(ServiceBusClient serviceBusClient, ILogger<InventoryProcessorService> logger)
     {
-        _serviceBusClient = serviceBusClient;
-        _logger = logger;
+        _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(serviceBusClient), "ServiceBusClient cannot be null");
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger), "Logger cannot be null");
     }
 
-    public async Task<bool> ReserveInventoryAsync(InventoryReserveEvent evt)
+    public async Task<bool> ReserveInventoryAsync(InventoryReserveRequestEvent evt)
     {
-        _logger.LogInformation("Checking inventory for Order {OrderId}", evt.OrderId);
 
         // Simulate inventory check logic
         var allInStock = evt.Items.All(item => item.Quantity <= 10); // e.g., mock stock level = 10
+
+        _logger.LogInformation("Checking inventory for Order {OrderId} stock {allInStock}", evt.OrderId, allInStock);
 
         return allInStock;
     }

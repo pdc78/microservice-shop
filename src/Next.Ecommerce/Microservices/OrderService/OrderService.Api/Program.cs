@@ -15,33 +15,38 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderProcessingService>();
 
 
+builder.Services.AddScoped<IServiceBusPublisher, AzureServiceBusPublisher>();
+
 // Register Azure Service Bus client
 // builder.Services.AddSingleton(new ServiceBusClient(
 //  builder.Configuration.GetConnectionString("ServiceBusConnection")));
+
+
 builder.Services.AddSingleton<ServiceBusClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var connectionString = configuration.GetConnectionString("ServiceBus");
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+        throw new InvalidOperationException("Missing Service Bus connection string");
+
     return new ServiceBusClient(connectionString);
 });
 
 
-// Register your publisher
-builder.Services.AddScoped<IServiceBusPublisher, AzureServiceBusPublisher>();
-
-// Register the Saga Orchestrator
-builder.Services.AddHostedService<SagaOrchestratorService>();
-// builder.Services.AddScoped<ISagaOrchestratorService, SagaOrchestratorService>();
 
 // Register other services like IOrderService, etc.
 builder.Services.AddScoped<IOrderService, OrderProcessingService>();
+
+// Register the Saga Orchestrator
+builder.Services.AddSingleton<IHostedService, SagaOrchestratorService>();
+// builder.Services.AddScoped<ISagaOrchestratorService, SagaOrchestratorService>();
 
 builder.Services.AddControllers();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-
 
 var app = builder.Build();
 

@@ -4,6 +4,8 @@ using Azure.Messaging.ServiceBus;
 using System.Text.Json;
 using System.Threading.Tasks;
 using OrderService.Application.Interfaces;
+using CatalogService.Infrastructure.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace OrderService.Infrastructure.ServiceBus;
 
@@ -12,10 +14,12 @@ namespace OrderService.Infrastructure.ServiceBus;
 public class AzureServiceBusPublisher : IServiceBusPublisher
 {
     private readonly ServiceBusClient _client;
+    private readonly ILogger<AzureServiceBusPublisher> _logger;
 
-    public AzureServiceBusPublisher(ServiceBusClient client)
+    public AzureServiceBusPublisher(ServiceBusClient client,ILogger<AzureServiceBusPublisher> logger)
     {
-        _client = client;
+        _client = client ?? throw new ArgumentNullException(nameof(ServiceBusClient), "ServiceBusClient cannot be null");
+        _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<AzureServiceBusPublisher>), "Logger cannot be null");
     }
 
     public async Task PublishAsync(string topicName, object message)

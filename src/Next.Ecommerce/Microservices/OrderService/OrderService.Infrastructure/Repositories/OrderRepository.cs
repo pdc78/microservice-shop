@@ -8,10 +8,10 @@ public class OrderRepository : IOrderRepository
 {
     private readonly OrderDbContext _context;
     private readonly ILogger<OrderRepository> _logger;
-    public OrderRepository(ILogger<OrderRepository> logger,OrderDbContext context)
+    public OrderRepository(OrderDbContext context, ILogger<OrderRepository> logger)
     {
-        _context = context;
-        _logger = logger;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task AddAsync(Order order)

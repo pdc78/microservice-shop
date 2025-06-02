@@ -17,6 +17,11 @@ IHost host = Host.CreateDefaultBuilder(args)
         var configuration = context.Configuration;
         var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus");
 
+        if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
+        {
+            throw new InvalidOperationException("Service Bus connection string is not configured.");
+        }
+
         services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
         services.AddScoped<IInventoryService, InventoryProcessorService>();
 

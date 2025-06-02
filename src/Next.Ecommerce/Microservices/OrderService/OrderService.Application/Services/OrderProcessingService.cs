@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.Extensions.Logging;
 using OrderService.Application.Interfaces;
 using OrderService.Domain.DTOs;
 using OrderService.Domain.Entities;
@@ -10,12 +11,13 @@ public class OrderProcessingService : IOrderService
 {
     private readonly IOrderRepository _repository;
     private readonly IServiceBusPublisher _bus;
+    private readonly ILogger<OrderProcessingService> _logger;
 
-
-    public OrderProcessingService(IOrderRepository repository, IServiceBusPublisher bus)
+    public OrderProcessingService(IOrderRepository repository, IServiceBusPublisher bus, ILogger<OrderProcessingService> logger)
     {
-        _repository = repository;
-        _bus = bus;
+        _repository = repository ?? throw new ArgumentNullException(nameof(IOrderRepository));
+        _bus = bus ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
+        _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<OrderProcessingService>));
     }
 
 

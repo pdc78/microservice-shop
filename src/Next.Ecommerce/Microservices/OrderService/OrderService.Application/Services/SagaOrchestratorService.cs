@@ -5,31 +5,37 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using OrderService.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Azure.Amqp.Framing;
 
 public class SagaOrchestratorService : BackgroundService
 {
-    private readonly IServiceBusPublisher _bus;
+
+    private readonly IServiceProvider _serviceProvider;
+    // private readonly IServiceBusPublisher _bus;
     private readonly ServiceBusClient _serviceBusClient;
+    //private readonly IOrderRepository _orderRepository;
     private readonly ILogger<SagaOrchestratorService> _logger;
-    private readonly IOrderRepository _orderRepository;
 
     private readonly List<ServiceBusProcessor> _processors = new();
 
-
-    public SagaOrchestratorService(IServiceBusPublisher bus, ILogger<SagaOrchestratorService> logger, ServiceBusClient serviceBusClient, IOrderRepository orderRepository)
+    //  IOrderRepository orderRepository
+    public SagaOrchestratorService(IServiceProvider serviceProvider, ServiceBusClient serviceBusClient, ILogger<SagaOrchestratorService> logger)
     {
-        _orderRepository = orderRepository;
-        _bus = bus;
-        _logger = logger;
-        _serviceBusClient = serviceBusClient;
+
+        //_orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
+        //  _bus = bus ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(ServiceBusClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<SagaOrchestratorService>));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Saga Orchestrator Service started.");
+        _logger.LogInformation("Saga Orchestrator Service starting.");
 
-        await RegisterProcessorAsync("OrderTopic", HandleOrderCreatedEvent, stoppingToken);
-        await RegisterProcessorAsync("InventoryTopic", HandleInventoryEvents, stoppingToken);
+        await RegisterProcessorAsync("ordertopic", "order-subscription-all", HandleOrderCreatedEvent, stoppingToken);
+        await RegisterProcessorAsync("inventorytopic", "inventory-subscription-all", HandleInventoryEvents, stoppingToken);
 
         // In the future, easily add:
         // await RegisterProcessorAsync("PaymentTopic", HandlePaymentEvents, stoppingToken);
@@ -38,93 +44,9 @@ public class SagaOrchestratorService : BackgroundService
         _logger.LogInformation("Saga Orchestrator Service started.");
     }
 
-
-
-    // protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    // {
-    //     _logger.LogInformation("Saga Orchestrator Service is starting.");
-
-    //     var orderProcessor = _serviceBusClient.CreateProcessor("OrderTopic", new ServiceBusProcessorOptions
-    //     {
-    //         MaxConcurrentCalls = 1,
-    //         AutoCompleteMessages = false
-    //     });
-
-    //     orderProcessor.ProcessMessageAsync += async args =>
-    //     {
-    //         try
-    //         {
-    //             var json = args.Message.Body.ToString();
-    //             var orderCreated = JsonSerializer.Deserialize<OrderCreatedEvent>(json);
-
-    //             if (orderCreated != null)
-    //             {
-    //                 var reserveCommand = new ReserveInventoryEvent
-    //                 {
-    //                     OrderId = orderCreated.OrderId,
-    //                     Items = orderCreated.Items
-    //                 };
-
-    //                 await _bus.PublishAsync("InventoryTopic", reserveCommand);
-    //                 _logger.LogInformation("ReserveInventoryEvent published. OrderId: {OrderId}", reserveCommand.OrderId);
-    //             }
-
-    //             await args.CompleteMessageAsync(args.Message);
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             _logger.LogError(ex, "Error processing OrderCreatedEvent");
-    //             // Optionally abandon message for retry depending on policy
-    //             await args.AbandonMessageAsync(args.Message);
-    //         }
-    //     };
-
-    //     orderProcessor.ProcessErrorAsync += args =>
-    //     {
-    //         Console.WriteLine($"Error: {args.Exception.Message}");
-    //         return Task.CompletedTask;
-    //     };
-
-    //     await orderProcessor.StartProcessingAsync(stoppingToken);
-    //     _logger.LogInformation("Saga Orchestrator Service is stopping.");
-
-    //     // Handle InventoryReservationFailedEvent from InventoryTopic
-    //     var inventoryProcessor = _serviceBusClient.CreateProcessor("InventoryTopic", new ServiceBusProcessorOptions());
-
-    //     inventoryProcessor.ProcessMessageAsync += async args =>
-    //     {
-    //         var json = args.Message.Body.ToString();
-    //         var failedEvent = JsonSerializer.Deserialize<InventoryReservationFailedEvent>(json);
-
-    //         if (failedEvent != null)
-    //         {
-    //             _logger.LogWarning("InventoryReservationFailedEvent received for OrderId: {OrderId}. Reason: {Reason}",
-    //                 failedEvent.OrderId, failedEvent.Reason);
-
-    //             // Compensating action: update order to Rejected
-    //             // await _repository.UpdateStatusAsync(failedEvent.OrderId, OrderStatus.Rejected);
-    //             _logger.LogInformation("Order {OrderId} marked as Rejected - call the repository to update the order", failedEvent.OrderId);
-    //         }
-
-    //         await args.CompleteMessageAsync(args.Message);
-    //     };
-
-    //     inventoryProcessor.ProcessErrorAsync += args =>
-    //     {
-    //         _logger.LogError(args.Exception, "Error processing InventoryTopic message");
-    //         return Task.CompletedTask;
-    //     };
-
-    //     await inventoryProcessor.StartProcessingAsync(stoppingToken);
-    //     _logger.LogInformation("Saga Orchestrator Service started successfully.");
-
-    // }
-
-
-
-    private async Task RegisterProcessorAsync(string topic, Func<ProcessMessageEventArgs, Task> handler, CancellationToken token)
+    private async Task RegisterProcessorAsync(string topic, string subscription, Func<ProcessMessageEventArgs, Task> handler, CancellationToken token)
     {
-        var processor = _serviceBusClient.CreateProcessor(topic, new ServiceBusProcessorOptions());
+        var processor = _serviceBusClient.CreateProcessor(topic, subscription, new ServiceBusProcessorOptions());
 
         processor.ProcessMessageAsync += handler;
         processor.ProcessErrorAsync += args =>
@@ -133,14 +55,24 @@ public class SagaOrchestratorService : BackgroundService
             return Task.CompletedTask;
         };
 
-        await processor.StartProcessingAsync(token);
-        _processors.Add(processor);
-
-        _logger.LogInformation("Started listening to {Topic}", topic);
+        try
+        {
+            await processor.StartProcessingAsync(token);
+            _processors.Add(processor);
+            _logger.LogInformation("Started listening to {Topic}", topic);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start processor for topic {Topic}", topic);
+            throw;
+        }
     }
 
     private async Task HandleOrderCreatedEvent(ProcessMessageEventArgs args)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<IServiceBusPublisher>();
+
         var json = args.Message.Body.ToString();
         var orderCreated = JsonSerializer.Deserialize<OrderCreatedEvent>(json);
 
@@ -148,14 +80,14 @@ public class SagaOrchestratorService : BackgroundService
         {
             _logger.LogInformation("Received OrderCreatedEvent for OrderId {OrderId}", orderCreated.OrderId);
 
-            var reserveEvent = new InventoryReserveEvent
+            var reserveEvent = new InventoryReserveRequestEvent
             {
                 OrderId = orderCreated.OrderId,
                 Items = orderCreated.Items
             };
 
-            await _bus.PublishAsync("InventoryTopic", reserveEvent);
-            _logger.LogInformation("Published ReserveInventoryEvent for OrderId {OrderId}", reserveEvent.OrderId);
+            await bus.PublishAsync("inventorytopic", reserveEvent);
+            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId}", reserveEvent.OrderId);
         }
 
         await args.CompleteMessageAsync(args.Message);
@@ -163,27 +95,32 @@ public class SagaOrchestratorService : BackgroundService
 
     private async Task HandleInventoryEvents(ProcessMessageEventArgs args)
     {
+        using var scope = _serviceProvider.CreateScope();
+        var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
+
         var json = args.Message.Body.ToString();
 
         try
         {
-            var failedEvent = JsonSerializer.Deserialize<InventoryReservationFailedEvent>(json);
+            _logger.LogInformation($"HandleInventoryEvents started : {args.Message.Body.ToString()}");
 
             if (json.Contains(nameof(InventoryReservedConfirmedEvent)))
             {
+                _logger.LogInformation("Received InventoryReservedConfirmedEvent");
                 var reserved = JsonSerializer.Deserialize<InventoryReservedConfirmedEvent>(json);
                 if (reserved != null)
                 {
-                    await _orderRepository.UpdateAsync(reserved.OrderId, OrderStatus.Confirmed);
+                    await orderRepository.UpdateAsync(reserved.OrderId, OrderStatus.Confirmed);
                     _logger.LogInformation("Order {OrderId} marked as Confirmed", reserved.OrderId);
                 }
             }
             else if (json.Contains(nameof(InventoryReservationFailedEvent)))
             {
+                _logger.LogInformation("Received InventoryReservationFailedEvent");
                 var rejected = JsonSerializer.Deserialize<InventoryReservationFailedEvent>(json);
                 if (rejected != null)
                 {
-                    await _orderRepository.UpdateAsync(rejected.OrderId, OrderStatus.Rejected);
+                    await orderRepository.UpdateAsync(rejected.OrderId, OrderStatus.Rejected);
                     _logger.LogInformation("Order {OrderId} marked as Rejected", rejected.OrderId);
 
                 }
@@ -200,6 +137,23 @@ public class SagaOrchestratorService : BackgroundService
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Saga Orchestrator Service is stopping.");
+
+        foreach (var processor in _processors)
+        {
+            try
+            {
+                await processor.StopProcessingAsync(cancellationToken);
+                await processor.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while stopping/disposing processor.");
+            }
+        }
+
+        _processors.Clear();
+
         await base.StopAsync(cancellationToken);
     }
+
 }

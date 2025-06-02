@@ -18,30 +18,34 @@ namespace InventoryService.Infrastructure.Workers
             ServiceBusClient serviceBusClient,
             IInventoryService inventoryService)
         {
-            _logger = logger;
-            _serviceBusClient = serviceBusClient;
-            _inventoryService = inventoryService;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(serviceBusClient));
+            _inventoryService = inventoryService ?? throw new ArgumentNullException(nameof(inventoryService));
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Inventory Worker started");
 
-            var processor = _serviceBusClient.CreateProcessor("InventoryTopic", new ServiceBusProcessorOptions());
+            var processor = _serviceBusClient.CreateProcessor("inventorytopic", "inventory-subscription-all", new ServiceBusProcessorOptions());
 
             processor.ProcessMessageAsync += async args =>
             {
                 try
                 {
                     var json = args.Message.Body.ToString();
-                    var reserveRequest = JsonSerializer.Deserialize<InventoryReserveEvent>(json);
+                    var reserveRequest = JsonSerializer.Deserialize<InventoryReserveRequestEvent>(json);
+
 
                     if (reserveRequest != null)
                     {
+                        _logger.LogInformation("Received InventoryReserveEvent for OrderId {OrderId}", reserveRequest.OrderId);
                         var success = await _inventoryService.ReserveInventoryAsync(reserveRequest);
 
                         if (success)
                         {
+                            _logger.LogInformation("Published InventoryReservedConfirmedEvent for OrderId {OrderId}", reserveRequest.OrderId);
+
                             var confirmed = new InventoryReservedConfirmedEvent
                             {
                                 OrderId = reserveRequest.OrderId
@@ -51,6 +55,8 @@ namespace InventoryService.Infrastructure.Workers
                         }
                         else
                         {
+                            _logger.LogInformation("Published InventoryReservationFailedEvent for OrderId {OrderId}", reserveRequest.OrderId);
+
                             var rejected = new InventoryReservationFailedEvent
                             {
                                 OrderId = reserveRequest.OrderId,
@@ -65,13 +71,13 @@ namespace InventoryService.Infrastructure.Workers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error processing inventory message");
+                    _logger.LogError(ex, $"{nameof(InventoryWorker)} : Error processing inventory message");
                 }
             };
 
             processor.ProcessErrorAsync += args =>
             {
-                _logger.LogError(args.Exception, "Service Bus error");
+                _logger.LogError(args.Exception, $"{nameof(InventoryWorker)} Service Bus error");
                 return Task.CompletedTask;
             };
 

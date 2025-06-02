@@ -1,7 +1,7 @@
 ﻿namespace InventoryService.Domain.Events;
 
 
-public class InventoryReserveEvent
+public class InventoryReserveRequestEvent
 {
     public Guid OrderId { get; set; }
     public List<OrderItemDto> Items { get; set; }

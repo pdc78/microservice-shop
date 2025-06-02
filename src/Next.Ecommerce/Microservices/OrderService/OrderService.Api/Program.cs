@@ -16,14 +16,22 @@ builder.Services.AddScoped<IOrderService, OrderProcessingService>();
 
 
 // Register Azure Service Bus client
-builder.Services.AddSingleton(new ServiceBusClient(
- builder.Configuration.GetConnectionString("ServiceBusConnection")));
+// builder.Services.AddSingleton(new ServiceBusClient(
+//  builder.Configuration.GetConnectionString("ServiceBusConnection")));
+builder.Services.AddSingleton<ServiceBusClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("ServiceBus");
+    return new ServiceBusClient(connectionString);
+});
+
 
 // Register your publisher
 builder.Services.AddScoped<IServiceBusPublisher, AzureServiceBusPublisher>();
 
 // Register the Saga Orchestrator
-builder.Services.AddScoped<ISagaOrchestratorService, SagaOrchestratorService>();
+builder.Services.AddHostedService<SagaOrchestratorService>();
+// builder.Services.AddScoped<ISagaOrchestratorService, SagaOrchestratorService>();
 
 // Register other services like IOrderService, etc.
 builder.Services.AddScoped<IOrderService, OrderProcessingService>();

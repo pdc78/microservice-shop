@@ -19,4 +19,17 @@ public class OrderRepository : IOrderRepository
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<Order?> UpdateAsync(Guid Id, OrderStatus status)
+    {
+        var order = await _context.Orders.FindAsync(Id);
+        if (order == null)
+        {
+            return null;
+        }
+        order.Status = status;
+        _context.Orders.Update(order);
+        await _context.SaveChangesAsync();
+        return order;
+    }
 }

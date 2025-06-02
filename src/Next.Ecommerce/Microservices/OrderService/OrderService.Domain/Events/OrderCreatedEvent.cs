@@ -4,7 +4,7 @@ namespace OrderService.Domain.Events;
 // It contains the order ID, user ID, and a list of items in the order.
 public class OrderCreatedEvent
 {
-    public string OrderId { get; set; }
+    public Guid OrderId { get; set; }
     public string UserId { get; set; }
     public List<OrderItemDto> Items { get; set; }
 }

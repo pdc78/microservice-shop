@@ -2,6 +2,7 @@
 using OrderService.Application.Interfaces;
 using OrderService.Domain.DTOs;
 using OrderService.Domain.Entities;
+using OrderService.Domain.Events;
 
 namespace OrderService.Application.Services;
 
@@ -23,7 +24,6 @@ public class OrderProcessingService : IOrderService
         var order = new Order
         {
             UserId = basket.UserId,
-            OrderDate = DateTime.UtcNow,
             Items = basket.Items.Select(i => new OrderItem
             {
                 ProductId = i.ProductId,

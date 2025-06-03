@@ -1,7 +1,3 @@
-// File: Application/Interfaces/IServiceBusPublisher.cs
-
-using System.Threading.Tasks;
-
 namespace OrderService.Application.Interfaces;
 
 
@@ -9,5 +5,5 @@ namespace OrderService.Application.Interfaces;
 // It includes a method to publish messages to a specified topic.
 public interface IServiceBusPublisher
 {
-    Task PublishAsync(string topicName, object message);
+    Task PublishAsync(string topicName, string messageType, object message);
 }

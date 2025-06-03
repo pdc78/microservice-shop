@@ -33,14 +33,13 @@ namespace InventoryService.Infrastructure.Workers
             {
                 try
                 {
-                    var json = args.Message.Body.ToString();
-                    var reserveRequest = JsonSerializer.Deserialize<InventoryReserveRequestEvent>(json);
-
+                    var jsonObj = args.Message.Body.ToString();
+                    var reserveRequest = JsonSerializer.Deserialize<InventoryReserveRequestEvent>(jsonObj);
 
                     if (reserveRequest != null)
                     {
-                        _logger.LogInformation("Received InventoryReserveEvent for OrderId {OrderId}", reserveRequest.OrderId);
-                        var success = await _inventoryService.ReserveInventoryAsync(reserveRequest);
+                        _logger.LogInformation("Received InventoryReserveRequestEvent for OrderId {OrderId} json reserveRequest: {jsonObj}", reserveRequest.OrderId, jsonObj);
+                        var success = _inventoryService.ReserveInventory(reserveRequest);
 
                         if (success)
                         {

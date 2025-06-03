@@ -48,7 +48,7 @@ public class OrderProcessingService : IOrderService
             }).ToList()
         };
 
-        await _bus.PublishAsync("OrderTopic", orderCreatedEvent);
+        await _bus.PublishAsync("OrderTopic", nameof(OrderCreatedEvent), orderCreatedEvent);
         // Optionally, you can also publish an event to notify other services about the new order
         return order.Id;
     }

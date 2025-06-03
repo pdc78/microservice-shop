@@ -2,9 +2,7 @@
 
 using Azure.Messaging.ServiceBus;
 using System.Text.Json;
-using System.Threading.Tasks;
 using OrderService.Application.Interfaces;
-using CatalogService.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace OrderService.Infrastructure.ServiceBus;
@@ -16,16 +14,25 @@ public class AzureServiceBusPublisher : IServiceBusPublisher
     private readonly ServiceBusClient _client;
     private readonly ILogger<AzureServiceBusPublisher> _logger;
 
-    public AzureServiceBusPublisher(ServiceBusClient client,ILogger<AzureServiceBusPublisher> logger)
+    public AzureServiceBusPublisher(ServiceBusClient client, ILogger<AzureServiceBusPublisher> logger)
     {
         _client = client ?? throw new ArgumentNullException(nameof(ServiceBusClient), "ServiceBusClient cannot be null");
         _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<AzureServiceBusPublisher>), "Logger cannot be null");
     }
 
-    public async Task PublishAsync(string topicName, object message)
+    public async Task PublishAsync(string topicName,string messageType, object message)
     {
         var sender = _client.CreateSender(topicName);
-        var json = JsonSerializer.Serialize(message);
+         var json = JsonSerializer.Serialize(message);
+        _logger.LogInformation("Publishing message to topic {TopicName}: {Message}", topicName, json);
+
+        var sbMessage = new ServiceBusMessage(json)
+        {
+            ContentType = "application/json"
+        };
+
+        sbMessage.ApplicationProperties["messageType"] = messageType;
+
         var serviceBusMessage = new ServiceBusMessage(json);
         await sender.SendMessageAsync(serviceBusMessage);
     }

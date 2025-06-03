@@ -6,25 +6,18 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using OrderService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Azure.Amqp.Framing;
 
 public class SagaOrchestratorService : BackgroundService
 {
 
     private readonly IServiceProvider _serviceProvider;
-    // private readonly IServiceBusPublisher _bus;
     private readonly ServiceBusClient _serviceBusClient;
-    //private readonly IOrderRepository _orderRepository;
     private readonly ILogger<SagaOrchestratorService> _logger;
 
     private readonly List<ServiceBusProcessor> _processors = new();
 
-    //  IOrderRepository orderRepository
     public SagaOrchestratorService(IServiceProvider serviceProvider, ServiceBusClient serviceBusClient, ILogger<SagaOrchestratorService> logger)
     {
-
-        //_orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
-        //  _bus = bus ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(ServiceBusClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<SagaOrchestratorService>));
@@ -85,9 +78,8 @@ public class SagaOrchestratorService : BackgroundService
                 OrderId = orderCreated.OrderId,
                 Items = orderCreated.Items
             };
-
-            await bus.PublishAsync("inventorytopic", reserveEvent);
-            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId}", reserveEvent.OrderId);
+            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId} to the topic inventorytopic", reserveEvent.OrderId);
+            await bus.PublishAsync("inventorytopic", nameof(InventoryReserveRequestEvent), reserveEvent);
         }
 
         await args.CompleteMessageAsync(args.Message);
@@ -98,34 +90,44 @@ public class SagaOrchestratorService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
 
-        var json = args.Message.Body.ToString();
+        _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandleInventoryEvents got a new message");
+        args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
 
         try
         {
-            _logger.LogInformation($"HandleInventoryEvents started : {args.Message.Body.ToString()}");
-
-            if (json.Contains(nameof(InventoryReservedConfirmedEvent)))
+            if (typeObj is string messageType)
             {
-                _logger.LogInformation("Received InventoryReservedConfirmedEvent");
-                var reserved = JsonSerializer.Deserialize<InventoryReservedConfirmedEvent>(json);
-                if (reserved != null)
-                {
-                    await orderRepository.UpdateAsync(reserved.OrderId, OrderStatus.Confirmed);
-                    _logger.LogInformation("Order {OrderId} marked as Confirmed", reserved.OrderId);
-                }
-            }
-            else if (json.Contains(nameof(InventoryReservationFailedEvent)))
-            {
-                _logger.LogInformation("Received InventoryReservationFailedEvent");
-                var rejected = JsonSerializer.Deserialize<InventoryReservationFailedEvent>(json);
-                if (rejected != null)
-                {
-                    await orderRepository.UpdateAsync(rejected.OrderId, OrderStatus.Rejected);
-                    _logger.LogInformation("Order {OrderId} marked as Rejected", rejected.OrderId);
+                var json = args.Message.Body.ToString();
+                _logger.LogInformation("Received message {json} of type {messageType}", json, messageType);
 
+                if (messageType.Equals(nameof(InventoryReservedConfirmedEvent)))
+                {
+                    _logger.LogInformation("Received InventoryReservedConfirmedEvent");
+                    var reserved = JsonSerializer.Deserialize<InventoryReservedConfirmedEvent>(json);
+                    if (reserved != null)
+                    {
+                        await orderRepository.UpdateAsync(reserved.OrderId, OrderStatus.Confirmed);
+                        _logger.LogInformation("Order {OrderId} marked as Confirmed", reserved.OrderId);
+                    }
                 }
+                else if (messageType.Equals(nameof(InventoryReservationFailedEvent)))
+                {
+                    _logger.LogInformation("Received InventoryReservationFailedEvent");
+                    var rejected = JsonSerializer.Deserialize<InventoryReservationFailedEvent>(json);
+                    if (rejected != null)
+                    {
+                        await orderRepository.UpdateAsync(rejected.OrderId, OrderStatus.Rejected);
+                        _logger.LogInformation("Order {OrderId} marked as Rejected", rejected.OrderId);
+
+                    }
+                }
+                await args.CompleteMessageAsync(args.Message);
             }
-            await args.CompleteMessageAsync(args.Message);
+            else
+            {
+                _logger.LogWarning("Message does not contain a valid messageType property.");
+                await args.DeadLetterMessageAsync(args.Message, "InvalidMessageType", "Message does not contain a valid messageType property.");
+            }
         }
         catch (JsonException ex)
         {
@@ -152,8 +154,7 @@ public class SagaOrchestratorService : BackgroundService
         }
 
         _processors.Clear();
-
         await base.StopAsync(cancellationToken);
+        _logger.LogInformation("Saga Orchestrator Service stopped.");
     }
-
 }

@@ -3,7 +3,7 @@
 namespace InventoryService.Application.Interfaces;
 public interface IInventoryService
 {
-    Task<bool> ReserveInventoryAsync(InventoryReserveRequestEvent evt);
+    bool ReserveInventory(InventoryReserveRequestEvent evt);
     Task SendInventoryConfirmedAsync(InventoryReservedConfirmedEvent evt);
     Task SendInventoryRejectedAsync(InventoryReservationFailedEvent evt);
 }

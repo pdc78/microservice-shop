@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using InventoryService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using InventoryService.Domain.Events;
+using System.Diagnostics.CodeAnalysis;
 
 namespace InventoryService.Infrastructure.Services;
 
@@ -17,41 +18,40 @@ public class InventoryProcessorService : IInventoryService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger), "Logger cannot be null");
     }
 
-    public async Task<bool> ReserveInventoryAsync(InventoryReserveRequestEvent evt)
+    public bool ReserveInventory(InventoryReserveRequestEvent evt)
     {
-
         // Simulate inventory check logic
-        var allInStock = evt.Items.All(item => item.Quantity <= 10); // e.g., mock stock level = 10
+        var tot = evt.Items.Sum(item => item.Quantity);
+        bool allInStock = tot <= 10; // e.g., mock stock level = 10
 
-        _logger.LogInformation("Checking inventory for Order {OrderId} stock {allInStock}", evt.OrderId, allInStock);
+        _logger.LogInformation("Checking inventory for Order {OrderId} Tot {tot} allInStock : {allInStock}", evt.OrderId, tot, allInStock);
 
         return allInStock;
     }
 
     public async Task SendInventoryConfirmedAsync(InventoryReservedConfirmedEvent evt)
     {
-        _logger.LogInformation("Inventory confirmed for Order {OrderId}", evt.OrderId);
-
-        var sender = _serviceBusClient.CreateSender("OrderTopic");
-        var message = new ServiceBusMessage(JsonSerializer.Serialize(evt))
-        {
-            Subject = nameof(InventoryReservedConfirmedEvent)
-        };
-
-        await sender.SendMessageAsync(message);
+        await SendInventoryEventAsync(evt, nameof(InventoryReservedConfirmedEvent));
     }
 
     public async Task SendInventoryRejectedAsync(InventoryReservationFailedEvent evt)
     {
-        _logger.LogInformation("Inventory rejected for Order {OrderId}", evt.OrderId);
-
-        var sender = _serviceBusClient.CreateSender("OrderTopic");
-        var message = new ServiceBusMessage(JsonSerializer.Serialize(evt))
-        {
-            Subject = nameof(InventoryReservationFailedEvent)
-        };
-
-        await sender.SendMessageAsync(message);
+        await SendInventoryEventAsync(evt, nameof(InventoryReservationFailedEvent));
     }
 
+    private async Task SendInventoryEventAsync<T>(T evt, string messageType)
+    {
+        var json = JsonSerializer.Serialize(evt);
+        _logger.LogInformation("Inventory {MessageType} for Order {Payload}", messageType, json);
+
+        var sender = _serviceBusClient.CreateSender("OrderTopic");
+
+        var serviceBusMessage = new ServiceBusMessage(json)
+        {
+            ContentType = "application/json"
+        };
+        serviceBusMessage.ApplicationProperties["messageType"] = messageType;
+
+        await sender.SendMessageAsync(serviceBusMessage);
+    }
 }

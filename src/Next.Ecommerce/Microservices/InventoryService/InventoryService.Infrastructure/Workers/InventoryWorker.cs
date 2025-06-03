@@ -27,7 +27,7 @@ namespace InventoryService.Infrastructure.Workers
         {
             _logger.LogInformation("Inventory Worker started");
 
-            var processor = _serviceBusClient.CreateProcessor("inventorytopic", "inventory-subscription-all", new ServiceBusProcessorOptions());
+            var processor = _serviceBusClient.CreateProcessor("inventorytopic", "inventory-sub-request", new ServiceBusProcessorOptions());
 
             processor.ProcessMessageAsync += async args =>
             {
@@ -35,6 +35,8 @@ namespace InventoryService.Infrastructure.Workers
                 {
                     var jsonObj = args.Message.Body.ToString();
                     var reserveRequest = JsonSerializer.Deserialize<InventoryReserveRequestEvent>(jsonObj);
+
+                    _logger.LogInformation("Processing InventoryReserveRequestEvent for OrderId {OrderId} json reserveRequest: {jsonObj}", reserveRequest?.OrderId, jsonObj);
 
                     if (reserveRequest != null)
                     {
@@ -64,9 +66,14 @@ namespace InventoryService.Infrastructure.Workers
 
                             await _inventoryService.SendInventoryRejectedAsync(rejected);
                         }
-                    }
 
-                    await args.CompleteMessageAsync(args.Message);
+                        await args.CompleteMessageAsync(args.Message);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Received null InventoryReserveRequestEvent");
+                        await args.AbandonMessageAsync(args.Message);
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -28,7 +28,7 @@ public class SagaOrchestratorService : BackgroundService
         _logger.LogInformation("Saga Orchestrator Service starting.");
 
         await RegisterProcessorAsync("ordertopic", "order-subscription-all", HandleOrderCreatedEvent, stoppingToken);
-        await RegisterProcessorAsync("inventorytopic", "inventory-subscription-all", HandleInventoryEvents, stoppingToken);
+        await RegisterProcessorAsync("inventorytopic", "inventory-sub-response", HandleInventoryEvents, stoppingToken);
 
         // In the future, easily add:
         // await RegisterProcessorAsync("PaymentTopic", HandlePaymentEvents, stoppingToken);
@@ -78,8 +78,8 @@ public class SagaOrchestratorService : BackgroundService
                 OrderId = orderCreated.OrderId,
                 Items = orderCreated.Items
             };
-            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId} to the topic inventorytopic", reserveEvent.OrderId);
             await bus.PublishAsync("inventorytopic", nameof(InventoryReserveRequestEvent), reserveEvent);
+            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId} to the topic inventorytopic", reserveEvent.OrderId);
         }
 
         await args.CompleteMessageAsync(args.Message);
@@ -92,6 +92,8 @@ public class SagaOrchestratorService : BackgroundService
 
         _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandleInventoryEvents got a new message");
         args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
+
+         //args.Message.ApplicationProperties["messageType"]
 
         try
         {

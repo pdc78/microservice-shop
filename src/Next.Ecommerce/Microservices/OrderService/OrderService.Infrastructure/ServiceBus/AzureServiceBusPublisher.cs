@@ -20,20 +20,18 @@ public class AzureServiceBusPublisher : IServiceBusPublisher
         _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<AzureServiceBusPublisher>), "Logger cannot be null");
     }
 
-    public async Task PublishAsync(string topicName,string messageType, object message)
+    public async Task PublishAsync(string topicName, string messageType, object message)
     {
         var sender = _client.CreateSender(topicName);
-         var json = JsonSerializer.Serialize(message);
-        _logger.LogInformation("Publishing message to topic {TopicName}: {Message}", topicName, json);
+        var json = JsonSerializer.Serialize(message);
+        _logger.LogInformation("Publishing message to topic {topicName} messageType {messageType}: {json}", topicName, messageType, json);
 
         var sbMessage = new ServiceBusMessage(json)
         {
-            ContentType = "application/json"
+            ContentType = "application/json",
+            ApplicationProperties = { ["messageType"] = messageType }
         };
 
-        sbMessage.ApplicationProperties["messageType"] = messageType;
-
-        var serviceBusMessage = new ServiceBusMessage(json);
-        await sender.SendMessageAsync(serviceBusMessage);
+        await sender.SendMessageAsync(sbMessage);
     }
 }

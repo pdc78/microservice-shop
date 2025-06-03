@@ -42,16 +42,16 @@ public class InventoryProcessorService : IInventoryService
     private async Task SendInventoryEventAsync<T>(T evt, string messageType)
     {
         var json = JsonSerializer.Serialize(evt);
-        _logger.LogInformation("Inventory {MessageType} for Order {Payload}", messageType, json);
+        _logger.LogInformation("SendInventoryEventAsync {messageType} for Order {json}", messageType, json);
 
-        var sender = _serviceBusClient.CreateSender("OrderTopic");
+        var sender = _serviceBusClient.CreateSender("inventorytopic");
 
-        var serviceBusMessage = new ServiceBusMessage(json)
+        var sbMessage = new ServiceBusMessage(json)
         {
-            ContentType = "application/json"
+            ContentType = "application/json",
+            ApplicationProperties = { ["messageType"] = messageType }
         };
-        serviceBusMessage.ApplicationProperties["messageType"] = messageType;
 
-        await sender.SendMessageAsync(serviceBusMessage);
+        await sender.SendMessageAsync(sbMessage);
     }
 }

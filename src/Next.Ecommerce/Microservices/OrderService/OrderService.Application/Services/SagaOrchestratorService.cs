@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using OrderService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
+
 
 public class SagaOrchestratorService : BackgroundService
 {
@@ -13,8 +15,11 @@ public class SagaOrchestratorService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ServiceBusClient _serviceBusClient;
     private readonly ILogger<SagaOrchestratorService> _logger;
-
     private readonly List<ServiceBusProcessor> _processors = new();
+
+
+    private static readonly ConcurrentDictionary<Guid, SagaState> _sagaStates = new();
+
 
     public SagaOrchestratorService(IServiceProvider serviceProvider, ServiceBusClient serviceBusClient, ILogger<SagaOrchestratorService> logger)
     {
@@ -73,13 +78,39 @@ public class SagaOrchestratorService : BackgroundService
         {
             _logger.LogInformation("Received OrderCreatedEvent for OrderId {OrderId}", orderCreated.OrderId);
 
-            var reserveEvent = new InventoryReserveRequestEvent
+
+            // Initialize saga state
+            var sagaState = new SagaState
+            {
+                OrderId = orderCreated.OrderId
+            };
+            _sagaStates.TryAdd(orderCreated.OrderId, sagaState);
+            _logger.LogInformation("Initialized SagaState for OrderId {OrderId}", orderCreated.OrderId);
+
+            var inventoryEvent = new InventoryReserveRequestEvent
             {
                 OrderId = orderCreated.OrderId,
                 Items = orderCreated.Items
             };
-            await bus.PublishAsync("inventorytopic", nameof(InventoryReserveRequestEvent), reserveEvent);
-            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId} to the topic inventorytopic", reserveEvent.OrderId);
+
+
+            var paymentEvent = new PaymentRequestEvent
+            {
+                OrderId = orderCreated.OrderId,
+                Amount = orderCreated.TotalAmount
+            };
+
+            var shippingEvent = new ShippingRequestEvent
+            {
+                OrderId = orderCreated.OrderId,
+                Address = orderCreated.ShippingAddress
+            };
+
+            await bus.PublishAsync("inventorytopic", nameof(InventoryReserveRequestEvent), inventoryEvent);
+            await bus.PublishAsync("paymenttopic", nameof(PaymentRequestEvent), paymentEvent);
+            await bus.PublishAsync("shippingtopic", nameof(ShippingRequestEvent), shippingEvent);
+
+            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId} to the topic inventorytopic", inventoryEvent.OrderId);
         }
 
         await args.CompleteMessageAsync(args.Message);
@@ -92,8 +123,6 @@ public class SagaOrchestratorService : BackgroundService
 
         _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandleInventoryEvents got a new message");
         args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
-
-         //args.Message.ApplicationProperties["messageType"]
 
         try
         {

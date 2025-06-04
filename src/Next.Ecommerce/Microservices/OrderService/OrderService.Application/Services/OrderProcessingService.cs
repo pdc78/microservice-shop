@@ -40,12 +40,14 @@ public class OrderProcessingService : IOrderService
         var orderCreatedEvent = new OrderCreatedEvent
         {
             OrderId = order.Id,
-            UserId = basket.UserId,
-            Items = basket.Items.Select(i => new OrderItemDto
+            UserId = order.UserId,
+            Items = order.Items.Select(i => new OrderItemDto
             {
                 ProductId = i.ProductId,
                 Quantity = i.Quantity
-            }).ToList()
+            }).ToList(),
+            ShippingAddress = "fake address", // Replace with actual shipping address logic
+            TotalAmount = order.TotalAmount
         };
 
         await _bus.PublishAsync("ordertopic", nameof(OrderCreatedEvent), orderCreatedEvent);

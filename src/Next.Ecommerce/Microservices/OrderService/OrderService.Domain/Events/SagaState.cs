@@ -13,7 +13,14 @@ public class SagaState
     public bool PaymentFailed { get; set; }
     public bool ShippingFailed { get; set; }
 
+   // Extra data to support compensation logic
+    public List<OrderItemEvent> Items { get; set; } = new();
+    public decimal TotalAmount { get; set; }
+    public string ShippingAddress { get; set; } = string.Empty;
+
     public bool IsCompleted => (InventorySuccess || InventoryFailed)
                              && (PaymentSuccess || PaymentFailed)
                              && (ShippingSuccess || ShippingFailed);
+
+    public bool HasAnyFailure => InventoryFailed || PaymentFailed || ShippingFailed;
 }

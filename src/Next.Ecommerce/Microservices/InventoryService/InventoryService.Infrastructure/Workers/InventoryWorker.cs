@@ -1,8 +1,8 @@
 ﻿using Azure.Messaging.ServiceBus;
 using InventoryService.Application.Interfaces;
-using InventoryService.Domain.Events;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OrderService.Domain.Events;
 using System.Text.Json;
 
 namespace InventoryService.Infrastructure.Workers
@@ -33,46 +33,87 @@ namespace InventoryService.Infrastructure.Workers
             {
                 try
                 {
-                    var jsonObj = args.Message.Body.ToString();
-                    var reserveRequest = JsonSerializer.Deserialize<InventoryReserveRequestEvent>(jsonObj);
-
-                    _logger.LogInformation("Processing InventoryReserveRequestEvent for OrderId {OrderId} json reserveRequest: {jsonObj}", reserveRequest?.OrderId, jsonObj);
-
-                    if (reserveRequest != null)
+                    var messageType = args.Message.ApplicationProperties.TryGetValue("messageType", out var type) ? type.ToString() : string.Empty;
+                    _logger.LogInformation($"Received message of type {messageType} possible values {nameof(InventoryRequestedEvent)} - {nameof(InventoryCancelledEvent)}");
+                    if (messageType != nameof(InventoryRequestedEvent) && messageType != nameof(InventoryCancelledEvent))
                     {
-                        _logger.LogInformation("Received InventoryReserveRequestEvent for OrderId {OrderId} json reserveRequest: {jsonObj}", reserveRequest.OrderId, jsonObj);
-                        var success = _inventoryService.ReserveInventory(reserveRequest);
+                        _logger.LogWarning("Received message of unexpected type {MessageType}, skipping processing", messageType);
+                        await args.DeadLetterMessageAsync(args.Message, "InvalidMessageType", $"Unexpected message type: {messageType}");
+                        return;
+                    }
+                    var jsonObj = args.Message.Body.ToString();
+                    if (messageType == nameof(InventoryCancelledEvent))
+                    {
 
-                        if (success)
+                        var cancelRequest = JsonSerializer.Deserialize<InventoryCancelledEvent>(jsonObj);
+                        _logger.LogInformation("Processing {InventoryCancelledEvent} for OrderId {OrderId} json reserveRequest: {jsonObj}", nameof(InventoryCancelledEvent), cancelRequest?.OrderId, jsonObj);
+
+                        if (cancelRequest != null)
                         {
-                            _logger.LogInformation("Published InventoryReservedConfirmedEvent for OrderId {OrderId}", reserveRequest.OrderId);
+                            _logger.LogInformation("Received InventoryCancelRequestEvent for OrderId {OrderId} json cancelRequest: {jsonObj}", cancelRequest.OrderId, jsonObj);
+                            var success = _inventoryService.UnreserveInventory(cancelRequest);
 
-                            var confirmed = new InventoryReservedConfirmedEvent
+                            if (success)
                             {
-                                OrderId = reserveRequest.OrderId
-                            };
-
-                            await _inventoryService.SendInventoryConfirmedAsync(confirmed);
+                                _logger.LogInformation("Published InventoryCancelledConfirmedEvent for OrderId {OrderId}", cancelRequest.OrderId);
+                                await args.CompleteMessageAsync(args.Message);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Failed to unreserve inventory for OrderId {OrderId}, skipping", cancelRequest.OrderId);
+                                await args.AbandonMessageAsync(args.Message);
+                            }
                         }
                         else
                         {
-                            _logger.LogInformation("Published InventoryReservationFailedEvent for OrderId {OrderId}", reserveRequest.OrderId);
-
-                            var rejected = new InventoryReservationFailedEvent
-                            {
-                                OrderId = reserveRequest.OrderId,
-                                Reason = "Not enough stock"
-                            };
-
-                            await _inventoryService.SendInventoryRejectedAsync(rejected);
+                            _logger.LogWarning("Received null InventoryCancelRequestEvent");
+                            await args.AbandonMessageAsync(args.Message);
                         }
 
-                        await args.CompleteMessageAsync(args.Message);
+                        return;
                     }
                     else
                     {
-                        _logger.LogWarning("Received null InventoryReserveRequestEvent");
-                        await args.AbandonMessageAsync(args.Message);
+
+                        var reserveRequest = JsonSerializer.Deserialize<InventoryRequestedEvent>(jsonObj);
+
+                        _logger.LogInformation("Processing {InventoryRequestedEvent} for OrderId {OrderId} json reserveRequest: {jsonObj}", nameof(InventoryRequestedEvent), reserveRequest?.OrderId, jsonObj);
+
+                        if (reserveRequest != null)
+                        {
+                            var success = _inventoryService.ReserveInventory(reserveRequest);
+
+                            if (success)
+                            {
+                                _logger.LogInformation("Published InventoryReservedConfirmedEvent for OrderId {OrderId}", reserveRequest.OrderId);
+
+                                var confirmed = new InventoryConfirmedEvent
+                                {
+                                    OrderId = reserveRequest.OrderId
+                                };
+
+                                await _inventoryService.SendInventoryConfirmedAsync(confirmed);
+                            }
+                            else
+                            {
+                                _logger.LogInformation("Published InventoryReservationFailedEvent for OrderId {OrderId}", reserveRequest.OrderId);
+
+                                var rejected = new InventoryCheckFailedEvent
+                                {
+                                    OrderId = reserveRequest.OrderId,
+                                    Reason = "Not enough stock"
+                                };
+
+                                await _inventoryService.SendInventoryRejectedAsync(rejected);
+                            }
+
+                            await args.CompleteMessageAsync(args.Message);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Received null InventoryReserveRequestEvent");
+                            await args.AbandonMessageAsync(args.Message);
+                        }
                     }
                 }
                 catch (Exception ex)

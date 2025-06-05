@@ -32,25 +32,26 @@ public class OrderProcessingService : IOrderService
                 ProductName = i.ProductName,
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice
-            }).ToList()
+            }).ToList(),
+            ShippingAddress = "fake address"
         };
 
         await _repository.AddAsync(order);
-        
+
         var orderCreatedEvent = new OrderCreatedEvent
         {
             OrderId = order.Id,
             UserId = order.UserId,
-            Items = order.Items.Select(i => new OrderItemDto
+            Items = order.Items.Select(i => new OrderItemEvent
             {
                 ProductId = i.ProductId,
                 Quantity = i.Quantity
             }).ToList(),
-            ShippingAddress = "fake address", // Replace with actual shipping address logic
+            ShippingAddress = order.ShippingAddress, // Replace with actual shipping address logic
             TotalAmount = order.TotalAmount
         };
 
-        await _bus.PublishAsync("ordertopic", nameof(OrderCreatedEvent), orderCreatedEvent);
+        await _bus.PublishAsync("ordertopic", orderCreatedEvent.OrderId.ToString(), nameof(OrderCreatedEvent), orderCreatedEvent);
         // Optionally, you can also publish an event to notify other services about the new order
         return order.Id;
     }

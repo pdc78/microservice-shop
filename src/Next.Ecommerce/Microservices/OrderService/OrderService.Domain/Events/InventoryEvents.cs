@@ -1,9 +1,4 @@
-﻿namespace OrderService.Domain.Events;
-
-public interface IIntegrationEvent
-{
-}
-
+namespace OrderService.Domain.Events;
 public abstract class InventoryEvent : IIntegrationEvent
 {
     public Guid OrderId { get; init; }

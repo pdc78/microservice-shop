@@ -1,9 +1,10 @@
-﻿using InventoryService.Domain.Events;
+﻿using OrderService.Domain.Events;
 
 namespace InventoryService.Application.Interfaces;
 public interface IInventoryService
 {
-    bool ReserveInventory(InventoryReserveRequestEvent evt);
-    Task SendInventoryConfirmedAsync(InventoryReservedConfirmedEvent evt);
-    Task SendInventoryRejectedAsync(InventoryReservationFailedEvent evt);
+    bool ReserveInventory(InventoryRequestedEvent evt);
+    bool UnreserveInventory(InventoryCancelledEvent evt);
+    Task SendInventoryConfirmedAsync(InventoryConfirmedEvent evt);
+    Task SendInventoryRejectedAsync(InventoryCheckFailedEvent evt);
 }

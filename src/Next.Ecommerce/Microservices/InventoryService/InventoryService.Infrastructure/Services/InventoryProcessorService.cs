@@ -2,8 +2,7 @@
 using Azure.Messaging.ServiceBus;
 using InventoryService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
-using InventoryService.Domain.Events;
-using System.Diagnostics.CodeAnalysis;
+using OrderService.Domain.Events;
 
 namespace InventoryService.Infrastructure.Services;
 
@@ -18,7 +17,7 @@ public class InventoryProcessorService : IInventoryService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger), "Logger cannot be null");
     }
 
-    public bool ReserveInventory(InventoryReserveRequestEvent evt)
+    public bool ReserveInventory(InventoryRequestedEvent evt)
     {
         // Simulate inventory check logic
         var tot = evt.Items.Sum(item => item.Quantity);
@@ -29,17 +28,23 @@ public class InventoryProcessorService : IInventoryService
         return allInStock;
     }
 
-    public async Task SendInventoryConfirmedAsync(InventoryReservedConfirmedEvent evt)
+    public async Task SendInventoryConfirmedAsync(InventoryConfirmedEvent evt)
     {
-        await SendInventoryEventAsync(evt, nameof(InventoryReservedConfirmedEvent));
+        await SendInventoryEventAsync(evt, nameof(InventoryConfirmedEvent), evt.OrderId);
     }
 
-    public async Task SendInventoryRejectedAsync(InventoryReservationFailedEvent evt)
+    public async Task SendInventoryRejectedAsync(InventoryCheckFailedEvent evt)
     {
-        await SendInventoryEventAsync(evt, nameof(InventoryReservationFailedEvent));
+        await SendInventoryEventAsync(evt, nameof(InventoryCheckFailedEvent), evt.OrderId);
     }
 
-    private async Task SendInventoryEventAsync<T>(T evt, string messageType)
+    public bool UnreserveInventory(InventoryCancelledEvent evt)
+    {
+        _logger.LogInformation("Unreserving inventory for Order {OrderId}", evt.OrderId);
+        return true; // Simulate unreservation logic
+    }
+
+    private async Task SendInventoryEventAsync<T>(T evt, string messageType, Guid orderId)
     {
         var json = JsonSerializer.Serialize(evt);
         _logger.LogInformation("SendInventoryEventAsync {messageType} for Order {json}", messageType, json);
@@ -49,7 +54,7 @@ public class InventoryProcessorService : IInventoryService
         var sbMessage = new ServiceBusMessage(json)
         {
             ContentType = "application/json",
-            ApplicationProperties = { ["messageType"] = messageType }
+            ApplicationProperties = { ["messageType"] = messageType, ["orderId"] = orderId.ToString() }
         };
 
         await sender.SendMessageAsync(sbMessage);

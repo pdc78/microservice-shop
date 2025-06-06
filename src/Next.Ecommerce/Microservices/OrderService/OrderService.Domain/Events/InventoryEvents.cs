@@ -12,6 +12,7 @@ public sealed class InventoryRequestedEvent : InventoryEvent
 public sealed class InventoryCancelledEvent : InventoryEvent
 {
     public required List<OrderItemEvent> Items { get; init; }
+    public required string Reason { get; init; }
 }
 
 public sealed class InventoryConfirmedEvent : InventoryEvent

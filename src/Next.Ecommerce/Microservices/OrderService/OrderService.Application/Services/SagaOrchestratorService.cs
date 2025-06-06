@@ -18,7 +18,6 @@ public class SagaOrchestratorService : BackgroundService
     private readonly ILogger<SagaOrchestratorService> _logger;
     private readonly List<ServiceBusProcessor> _processors = new();
 
-
     private static readonly ConcurrentDictionary<Guid, SagaState> _sagaStates = new();
 
 
@@ -37,34 +36,6 @@ public class SagaOrchestratorService : BackgroundService
         await RegisterProcessorAsync("inventorytopic", "inventory-sub-response", HandleInventoryEvents, stoppingToken);
         await RegisterProcessorAsync("paymenttopic", "payment-sub-response", HandlePaymentEvents, stoppingToken);
         await RegisterProcessorAsync("shippingtopic", "shipping-sub-response", HandleShippingEvents, stoppingToken);
-
-        //    await RegisterProcessorAsync(
-        //        "ordertopic",
-        //        "order-subscription-all",
-        //          args => HandleEventAsync<IIntegrationEvent>(
-        //    args,
-        //    (evt, orderId) => HandleOrderCreatedAsync(evt, orderId),
-        //    stoppingToken
-        //),
-        //stoppingToken);
-
-        //    await RegisterProcessorAsync(
-        //        "inventorytopic",
-        //        "inventory-sub-response",
-        //        args => HandleEventAsync<IIntegrationEvent>(args, HandleInventorySagaAsync, stoppingToken),
-        //        stoppingToken);
-
-        //    await RegisterProcessorAsync(
-        //       "paymenttopic",
-        //       "payment-sub-response",
-        //       args => HandleEventAsync<IIntegrationEvent>(args, HandlePaymentSagaAsync, stoppingToken),
-        //       stoppingToken);
-
-        //    //await RegisterProcessorAsync(
-        //  "shippingtopic",
-        //  "shipping-sub-response",
-        //  args => HandleEventAsync<IIntegrationEvent>(args, HandleShippingSagaAsync, stoppingToken),
-        //  stoppingToken);
 
         _logger.LogInformation("Saga Orchestrator Service started.");
     }
@@ -97,6 +68,8 @@ public class SagaOrchestratorService : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var bus = scope.ServiceProvider.GetRequiredService<IServiceBusPublisher>();
+
+        _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandleOrderCreatedEvent got a new message");
 
         var json = args.Message.Body.ToString();
         var orderCreated = JsonSerializer.Deserialize<OrderCreatedEvent>(json);
@@ -137,7 +110,7 @@ public class SagaOrchestratorService : BackgroundService
             await bus.PublishAsync("paymenttopic", oId, nameof(PaymentRequestedEvent), paymentEvent);
             await bus.PublishAsync("shippingtopic", oId, nameof(ShippingRequestedEvent), shippingEvent);
 
-            _logger.LogInformation("Published InventoryReserveRequestEvent for OrderId {OrderId} to the topic inventorytopic", inventoryEvent.OrderId);
+            _logger.LogInformation("Published InventoryRequestedEvent, PaymentRequestedEvent, ShippingRequestedEvent for OrderId {OrderId} to the relatives topics", inventoryEvent.OrderId);
         }
 
         await args.CompleteMessageAsync(args.Message);
@@ -174,10 +147,12 @@ public class SagaOrchestratorService : BackgroundService
                 {
                     case nameof(InventoryConfirmedEvent):
                         saga.InventorySuccess = true;
+                        _logger.LogInformation($"InventoryConfirmedEvent: {saga.InventorySuccess}");
                         break;
 
                     case nameof(InventoryCheckFailedEvent):
                         saga.InventoryFailed = true;
+                        _logger.LogInformation($"ShippingFailedEvent: {saga.InventoryFailed}");
                         break;
 
                     default:
@@ -197,7 +172,7 @@ public class SagaOrchestratorService : BackgroundService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to deserialize message from InventoryTopic.");
+            _logger.LogError(ex, "Failed to deserialize message from Inventory Topic.");
             await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
         }
     }
@@ -233,11 +208,13 @@ public class SagaOrchestratorService : BackgroundService
                 switch (messageType)
                 {
                     case nameof(ShippingConfirmedEvent):
-                        saga.InventorySuccess = true;
+                        saga.ShippingSuccess = true;
+                        _logger.LogInformation($"ShippingConfirmedEvent: {saga.ShippingSuccess}");
                         break;
 
                     case nameof(ShippingFailedEvent):
-                        saga.InventoryFailed = true;
+                        saga.ShippingFailed = true;
+                        _logger.LogInformation($"ShippingFailedEvent: {saga.ShippingFailed}");
                         break;
 
                     default:
@@ -252,13 +229,12 @@ public class SagaOrchestratorService : BackgroundService
                 await args.DeadLetterMessageAsync(args.Message, "EmptyMessageBody", "Message body is empty or null.");
             }
 
-            // Complete the message after processing  
             await EvaluateSagaAsync(saga, scope);
             await args.CompleteMessageAsync(args.Message);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to deserialize message from InventoryTopic.");
+            _logger.LogError(ex, "Failed to deserialize message from Shipping Topic.");
             await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
         }
         catch (Exception ex)
@@ -299,11 +275,13 @@ public class SagaOrchestratorService : BackgroundService
                 switch (messageType)
                 {
                     case nameof(PaymentConfirmedEvent):
-                        saga.InventorySuccess = true;
+                        saga.PaymentSuccess = true;
+                        _logger.LogInformation($"PaymentConfirmedEvent: {saga.PaymentSuccess}");
                         break;
 
                     case nameof(PaymentFailedEvent):
-                        saga.InventoryFailed = true;
+                        saga.PaymentFailed = true;
+                        _logger.LogInformation($"PaymentFailedEvent: {saga.PaymentFailed}");
                         break;
 
                     default:
@@ -324,32 +302,32 @@ public class SagaOrchestratorService : BackgroundService
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to deserialize message from InventoryTopic.");
+            _logger.LogError(ex, "Failed to deserialize message from Payment Topic.");
             await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error while processing shipping events.");
+            _logger.LogError(ex, "Unexpected error while processing payment events.");
             await args.DeadLetterMessageAsync(args.Message, "ProcessingError", ex.Message);
         }
     }
-
 
     private async Task EvaluateSagaAsync(SagaState saga, IServiceScope scope)
     {
         var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
         var bus = scope.ServiceProvider.GetRequiredService<IServiceBusPublisher>();
 
-        _logger.LogInformation("Evaluating saga state for OrderId {OrderId}", saga.OrderId);
+        _logger.LogInformation("Evaluating saga state for OrderId {OrderId} | Completed {IsCompleted}", saga.OrderId, saga.IsCompleted);
 
         if (!saga.IsCompleted)
         {
-            _logger.BeginScope("Saga state for OrderId {OrderId} is not completed yet. Current state: InventorySuccess={InventorySuccess}, PaymentSuccess={PaymentSuccess}, ShippingSuccess={ShippingSuccess}, InventoryFailed={InventoryFailed}, PaymentFailed={PaymentFailed}, ShippingFailed={ShippingFailed}", saga.OrderId, saga.InventorySuccess, saga.PaymentSuccess, saga.ShippingSuccess, saga.InventoryFailed, saga.PaymentFailed, saga.ShippingFailed);
+            _logger.LogInformation("Saga state for OrderId {OrderId} is not completed yet. Current state: InventorySuccess={InventorySuccess}, PaymentSuccess={PaymentSuccess}, ShippingSuccess={ShippingSuccess}, InventoryFailed={InventoryFailed}, PaymentFailed={PaymentFailed}, ShippingFailed={ShippingFailed}", saga.OrderId, saga.InventorySuccess, saga.PaymentSuccess, saga.ShippingSuccess, saga.InventoryFailed, saga.PaymentFailed, saga.ShippingFailed);
             return;
         }
 
         if (saga.HasAnyFailure)
         {
+            var reason = $"Order cancelled due to InventoryFailed={saga.InventoryFailed}, PaymentFailed={saga.PaymentFailed}, ShippingFailed={saga.ShippingFailed}";
             var oId = saga.OrderId.ToString();
             _logger.LogWarning("Saga failed for OrderId {OrderId}, triggering compensation", saga.OrderId);
 
@@ -358,7 +336,8 @@ public class SagaOrchestratorService : BackgroundService
                 await bus.PublishAsync("inventorytopic", oId, nameof(InventoryCancelledEvent), new InventoryCancelledEvent
                 {
                     OrderId = saga.OrderId,
-                    Items = saga.Items
+                    Items = saga.Items,
+                    Reason = reason
                 });
                 _logger.LogInformation($"Published {nameof(InventoryCancelledEvent)} for OrderId {saga.OrderId}");
             }
@@ -368,7 +347,7 @@ public class SagaOrchestratorService : BackgroundService
                 await bus.PublishAsync("paymenttopic", oId, nameof(PaymentCancelledEvent), new PaymentCancelledEvent
                 {
                     OrderId = saga.OrderId,
-                    Reason = "Order cancelled due to inventory failure"
+                    Reason = reason
                 });
                 _logger.LogInformation($"Published {nameof(PaymentCancelledEvent)} for OrderId {saga.OrderId}");
             }
@@ -378,7 +357,7 @@ public class SagaOrchestratorService : BackgroundService
                 await bus.PublishAsync("shippingtopic", oId, nameof(ShippingCancelledEvent), new ShippingCancelledEvent
                 {
                     OrderId = saga.OrderId,
-                    Reason = "Order cancelled due to inventory failure"
+                    Reason = reason
                 });
                 _logger.LogInformation($"Published {nameof(ShippingCancelledEvent)} for OrderId {saga.OrderId}");
             }
@@ -393,160 +372,6 @@ public class SagaOrchestratorService : BackgroundService
 
         _sagaStates.TryRemove(saga.OrderId, out _);
     }
-
-    //private async Task HandleEventAsync<TEvent>(
-    //    ProcessMessageEventArgs args,
-    //    Func<IIntegrationEvent, Guid, Task> handleFunc,
-    //    CancellationToken cancellationToken)
-    //{
-    //    try
-    //    {
-    //        if (!args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj) ||
-    //            !args.Message.ApplicationProperties.TryGetValue("orderId", out var orderIdObj) ||
-    //            typeObj is not string messageType ||
-    //            orderIdObj is not string orderIdStr ||
-    //            !Guid.TryParse(orderIdStr, out var orderId))
-    //        {
-    //            _logger.LogWarning("Invalid metadata in message");
-    //            await args.DeadLetterMessageAsync(args.Message, "InvalidMetadata", "Missing or invalid type/OrderId");
-    //            return;
-    //        }
-
-    //        var json = Encoding.UTF8.GetString(args.Message.Body);
-    //        //var evt = JsonSerializer.Deserialize<TEvent>(json);
-    //        IIntegrationEvent evt = DeserializeEvent(json, messageType);
-
-    //        if (evt is null)
-    //        {
-    //            _logger.LogWarning("Deserialization returned null");
-    //            await args.DeadLetterMessageAsync(args.Message, "NullDeserialization", "Deserialized event is null");
-    //            return;
-    //        }
-
-    //        _logger.LogInformation("Handling event of type {EventType} with OrderId {OrderId}", typeof(TEvent).Name, orderId);
-
-    //        await handleFunc(evt, orderId);
-
-    //        await args.CompleteMessageAsync(args.Message);
-    //    }
-    //    catch (JsonException ex)
-    //    {
-    //        _logger.LogError(ex, "Deserialization failed for {EventType}", typeof(TEvent).Name);
-    //        await args.DeadLetterMessageAsync(args.Message, "DeserializationError", ex.Message);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Unexpected error while handling event {EventType}", typeof(TEvent).Name);
-    //        // Decide whether to complete, abandon, or let retry
-    //    }
-    //}
-
-    //private Task HandleInventorySagaAsync(IIntegrationEvent evt, Guid orderId)
-    //{
-    //    using var scope = _serviceProvider.CreateScope();
-    //    if (!_sagaStates.TryGetValue(orderId, out var saga))
-    //    {
-    //        _logger.LogWarning("No saga found for order {OrderId}", orderId);
-    //        return Task.CompletedTask;
-    //    }
-
-    //    switch (evt)
-    //    {
-    //        case InventoryConfirmedEvent:
-    //            saga.InventorySuccess = true;
-    //            break;
-    //        case InventoryCheckFailedEvent:
-    //            saga.InventoryFailed = true;
-    //            break;
-    //    }
-
-    //    return EvaluateSagaAsync(saga, scope);
-    //}
-
-    //private Task HandleShippingSagaAsync(IIntegrationEvent evt, Guid orderId)
-    //{
-    //    using var scope = _serviceProvider.CreateScope();
-    //    if (!_sagaStates.TryGetValue(orderId, out var saga))
-    //    {
-    //        _logger.LogWarning("No saga found for order {OrderId}", orderId);
-    //        return Task.CompletedTask;
-    //    }
-
-    //    switch (evt)
-    //    {
-    //        case PaymentConfirmedEvent:
-    //            saga.InventorySuccess = true;
-    //            break;
-    //        case PaymentFailedEvent:
-    //            saga.InventoryFailed = true;
-    //            break;
-    //    }
-
-    //    return EvaluateSagaAsync(saga, scope);
-    //}
-
-    //private Task HandlePaymentSagaAsync(IIntegrationEvent evt, Guid orderId)
-    //{
-    //    using var scope = _serviceProvider.CreateScope();
-    //    if (!_sagaStates.TryGetValue(orderId, out var saga))
-    //    {
-    //        _logger.LogWarning("No saga found for order {OrderId}", orderId);
-    //        return Task.CompletedTask;
-    //    }
-
-    //    switch (evt)
-    //    {
-    //        case PaymentConfirmedEvent:
-    //            saga.InventorySuccess = true;
-    //            break;
-    //        case PaymentFailedEvent:
-    //            saga.InventoryFailed = true;
-    //            break;
-    //    }
-
-    //    return EvaluateSagaAsync(saga, scope);
-    //}
-
-    //private async Task HandleOrderCreatedAsync(OrderCreatedEvent orderCreated, Guid orderId)
-    //{
-    //    using var scope = _serviceProvider.CreateScope();
-    //    var bus = scope.ServiceProvider.GetRequiredService<IServiceBusPublisher>();
-    //    var oId = orderId.ToString();
-
-    //    _logger.LogInformation("Received OrderCreatedEvent for OrderId {OrderId}", orderId);
-
-    //    // Initialize saga state
-    //    var sagaState = new SagaState
-    //    {
-    //        OrderId = orderId
-    //    };
-    //    _sagaStates.TryAdd(orderId, sagaState);
-    //    _logger.LogInformation("Initialized SagaState for OrderId {OrderId}", orderId);
-
-    //    var inventoryEvent = new InventoryRequestedEvent
-    //    {
-    //        OrderId = orderId,
-    //        Items = orderCreated.Items
-    //    };
-
-    //    var paymentEvent = new PaymentRequestedEvent
-    //    {
-    //        OrderId = orderId,
-    //        Amount = orderCreated.TotalAmount
-    //    };
-
-    //    var shippingEvent = new ShippingRequestedEvent
-    //    {
-    //        OrderId = orderId,
-    //        Address = orderCreated.ShippingAddress
-    //    };
-
-    //    await bus.PublishAsync("inventorytopic", oId, nameof(InventoryRequestedEvent), inventoryEvent);
-    //    await bus.PublishAsync("paymenttopic", oId, nameof(PaymentRequestedEvent), paymentEvent);
-    //    await bus.PublishAsync("shippingtopic", oId, nameof(ShippingRequestedEvent), shippingEvent);
-
-    //    _logger.LogInformation("Published all requested events for OrderId {OrderId}", orderId);
-    //}
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
@@ -569,17 +394,4 @@ public class SagaOrchestratorService : BackgroundService
         await base.StopAsync(cancellationToken);
         _logger.LogInformation("Saga Orchestrator Service stopped.");
     }
-
-    //private IIntegrationEvent DeserializeEvent(string json, string messageType)
-    //{
-    //    var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-
-    //    return messageType switch
-    //    {
-    //        "OrderCreatedEvent" => JsonSerializer.Deserialize<OrderCreatedEvent>(json, options),
-    //        "InventoryCheckFailedEvent" => JsonSerializer.Deserialize<InventoryCheckFailedEvent>(json, options),
-    //        "InventoryConfirmedEvent" => JsonSerializer.Deserialize<InventoryConfirmedEvent>(json, options),
-    //        _ => throw new NotSupportedException($"Unknown message type: {messageType}")
-    //    };
-    //}
 }

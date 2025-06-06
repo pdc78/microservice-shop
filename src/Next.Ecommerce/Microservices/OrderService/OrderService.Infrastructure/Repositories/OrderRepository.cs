@@ -30,6 +30,7 @@ public class OrderRepository : IOrderRepository
         order.Status = status;
         _context.Orders.Update(order);
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Order {OrderId} updated to status {Status}", Id, status);
         return order;
     }
 }

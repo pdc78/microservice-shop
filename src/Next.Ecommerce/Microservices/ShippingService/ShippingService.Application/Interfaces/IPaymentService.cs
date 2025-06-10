@@ -1,4 +1,4 @@
-﻿using ShippingService.Domain.Events;
+﻿using Contracts.Events;
 using System.Threading.Tasks;
 
 namespace ShippingService.Application.Interfaces;

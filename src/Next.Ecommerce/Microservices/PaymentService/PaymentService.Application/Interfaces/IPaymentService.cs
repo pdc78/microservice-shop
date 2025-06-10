@@ -1,4 +1,4 @@
-﻿using PaymentService.Domain.Events;
+﻿using Contracts.Events;
 using System.Threading.Tasks;
 
 namespace PaymentService.Application.Interfaces;

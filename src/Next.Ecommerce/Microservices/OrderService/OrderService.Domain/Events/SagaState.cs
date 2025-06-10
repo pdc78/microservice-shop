@@ -14,7 +14,7 @@ public class SagaState
     public bool ShippingFailed { get; set; }
 
    // Extra data to support compensation logic
-    public List<OrderItemEvent> Items { get; set; } = new();
+    public List<SagaOrderItem> Items { get; set; } = new();
     public decimal TotalAmount { get; set; }
     public string ShippingAddress { get; set; } = string.Empty;
 

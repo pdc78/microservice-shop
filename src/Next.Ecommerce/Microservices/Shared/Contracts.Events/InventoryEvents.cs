@@ -1,4 +1,4 @@
-namespace OrderService.Domain.Events;
+namespace Contracts.Events;
 public abstract class InventoryEvent : IIntegrationEvent
 {
     public Guid OrderId { get; init; }

@@ -9,14 +9,20 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 
 WORKDIR  /src
-COPY ["InventoryService.Domain/InventoryService.Domain.csproj", "InventoryService.Domain/"]
-COPY ["InventoryService.Application/InventoryService.Application.csproj", "InventoryService.Application/"]
-COPY ["InventoryService.Infrastructure/InventoryService.Infrastructure.csproj", "InventoryService.Infrastructure/"]
 
-RUN dotnet restore "InventoryService.Infrastructure/InventoryService.Infrastructure.csproj"
+# Copy csproj files
+COPY ["Shared/Contracts.Events/Contracts.Events.csproj", "Shared/Contracts.Events/"]
+COPY ["InventoryService/InventoryService.Application/InventoryService.Application.csproj", "InventoryService/InventoryService.Application/"]
+COPY ["InventoryService/InventoryService.Infrastructure/InventoryService.Infrastructure.csproj", "InventoryService/InventoryService.Infrastructure/"]
 
+# Restore
+RUN dotnet restore "InventoryService/InventoryService.Infrastructure/InventoryService.Infrastructure.csproj"
+
+# Copy all source
 COPY . .
-WORKDIR  "/src/InventoryService.Infrastructure"
+
+# Build
+WORKDIR  "/src/InventoryService/InventoryService.Infrastructure"
 RUN dotnet build "./InventoryService.Infrastructure.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

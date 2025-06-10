@@ -2,7 +2,7 @@
 using InventoryService.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using OrderService.Domain.Events;
+using Contracts.Events;
 using System.Text.Json;
 
 namespace InventoryService.Infrastructure.Workers

@@ -1,4 +1,4 @@
-namespace OrderService.Domain.Events;
+namespace Contracts.Events;
 public abstract class PaymentEvent : IIntegrationEvent
 {
     public Guid OrderId { get; init; }

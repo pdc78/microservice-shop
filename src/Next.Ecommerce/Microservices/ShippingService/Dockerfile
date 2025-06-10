@@ -1,26 +1,28 @@
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-# USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
-
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
 
-WORKDIR  /src
-COPY ["ShippingService.Domain/ShippingService.Domain.csproj", "ShippingService.Domain/"]
-COPY ["ShippingService.Application/ShippingService.Application.csproj", "ShippingService.Application/"]
-COPY ["ShippingService.Infrastructure/ShippingService.Infrastructure.csproj", "ShippingService.Infrastructure/"]
+# Copy csproj files
+COPY ["Shared/Contracts.Events/Contracts.Events.csproj", "Shared/Contracts.Events/"]
+COPY ["ShippingService/ShippingService.Application/ShippingService.Application.csproj", "ShippingService/ShippingService.Application/"]
+COPY ["ShippingService/ShippingService.Infrastructure/ShippingService.Infrastructure.csproj", "ShippingService/ShippingService.Infrastructure/"]
 
-RUN dotnet restore "ShippingService.Infrastructure/ShippingService.Infrastructure.csproj"
+# Restore
+RUN dotnet restore "ShippingService/ShippingService.Infrastructure/ShippingService.Infrastructure.csproj"
 
+# Copy all source
 COPY . .
-WORKDIR  "/src/ShippingService.Infrastructure"
-RUN dotnet build "./ShippingService.Infrastructure.csproj" -c $BUILD_CONFIGURATION -o /app/build
+
+# Build
+WORKDIR "/src/ShippingService/ShippingService.Infrastructure"
+RUN dotnet build "ShippingService.Infrastructure.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "ShippingService.Infrastructure.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final

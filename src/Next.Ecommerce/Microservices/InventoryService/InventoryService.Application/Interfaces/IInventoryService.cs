@@ -1,4 +1,4 @@
-﻿using OrderService.Domain.Events;
+﻿using Contracts.Events;
 
 namespace InventoryService.Application.Interfaces;
 public interface IInventoryService

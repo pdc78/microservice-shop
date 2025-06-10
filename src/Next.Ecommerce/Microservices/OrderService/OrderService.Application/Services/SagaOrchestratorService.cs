@@ -7,8 +7,10 @@ using System.Text.Json;
 using OrderService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using Contracts.Events;
 
 
+namespace OrderService.Application;
 public class SagaOrchestratorService : BackgroundService
 {
 
@@ -136,10 +138,16 @@ public class SagaOrchestratorService : BackgroundService
 
             if (saga.InventorySuccess)
             {
+                var items = new List<OrderItemEvent>();
+                foreach (var item in saga.Items)
+                {
+                    items.Add(new OrderItemEvent(item.ProductId, item.Quantity));
+                }
+
                 await bus.PublishAsync("inventorytopic", oId, nameof(InventoryCancelledEvent), new InventoryCancelledEvent
                 {
                     OrderId = saga.OrderId,
-                    Items = saga.Items,
+                    Items = items,
                     Reason = reason
                 });
                 _logger.LogInformation($"Published {nameof(InventoryCancelledEvent)} for OrderId {saga.OrderId}");

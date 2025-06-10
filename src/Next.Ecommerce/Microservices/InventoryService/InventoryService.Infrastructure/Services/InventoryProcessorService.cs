@@ -2,7 +2,7 @@
 using Azure.Messaging.ServiceBus;
 using InventoryService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
-using OrderService.Domain.Events;
+using Contracts.Events;
 
 namespace InventoryService.Infrastructure.Services;
 

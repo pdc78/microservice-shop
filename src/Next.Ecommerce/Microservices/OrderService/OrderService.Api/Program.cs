@@ -5,6 +5,7 @@ using OrderService.Application.Services;
 using OrderService.Infrastructure.Data;
 using Azure.Messaging.ServiceBus;
 using OrderService.Infrastructure.ServiceBus;
+using OrderService.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 

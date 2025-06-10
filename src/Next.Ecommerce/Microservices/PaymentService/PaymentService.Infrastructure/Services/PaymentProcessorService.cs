@@ -2,7 +2,7 @@
 using Azure.Messaging.ServiceBus;
 using PaymentService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
-using PaymentService.Domain.Events;
+using Contracts.Events;
 
 namespace PaymentService.Infrastructure.Services;
 

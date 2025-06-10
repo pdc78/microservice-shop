@@ -1,3 +1,3 @@
-namespace PaymentService.Domain.Events;
+//namespace PaymentService.Domain.Events;
 
-public interface IIntegrationEvent { }
+//public interface IIntegrationEvent { }

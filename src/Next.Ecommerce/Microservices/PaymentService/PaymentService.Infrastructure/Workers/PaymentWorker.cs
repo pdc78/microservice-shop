@@ -3,7 +3,7 @@ using PaymentService.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using PaymentService.Domain.Events;
+using Contracts.Events;
 
 namespace PaymentService.Infrastructure.Workers
 {

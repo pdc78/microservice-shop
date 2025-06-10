@@ -1,3 +1,3 @@
-namespace OrderService.Domain.Events;
+namespace Contracts.Events;
 
 public interface IIntegrationEvent { }

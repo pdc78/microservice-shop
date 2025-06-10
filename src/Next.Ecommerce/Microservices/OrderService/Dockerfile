@@ -9,15 +9,20 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 
 WORKDIR  /src
-COPY ["OrderService.Api/OrderService.Api.csproj", "OrderService.Api/"]
-COPY ["OrderService.Domain/OrderService.Domain.csproj", "OrderService.Domain/"]
-COPY ["OrderService.Application/OrderService.Application.csproj", "OrderService.Application/"]
-COPY ["OrderService.Infrastructure/OrderService.Infrastructure.csproj", "OrderService.Infrastructure/"]
+COPY ["Shared/Contracts.Events/Contracts.Events.csproj", "Shared/Contracts.Events/"]
+COPY ["OrderService/OrderService.Api/OrderService.Api.csproj", "OrderService/OrderService.Api/"]
+COPY ["OrderService/OrderService.Domain/OrderService.Domain.csproj", "OrderService/OrderService.Domain/"]
+COPY ["OrderService/OrderService.Application/OrderService.Application.csproj", "OrderService/OrderService.Application/"]
+COPY ["OrderService/OrderService.Infrastructure/OrderService.Infrastructure.csproj", "OrderService/OrderService.Infrastructure/"]
 
-RUN dotnet restore "OrderService.Api/OrderService.Api.csproj"
+# Restore
+RUN dotnet restore "OrderService/OrderService.Api/OrderService.Api.csproj"
 
+# Copy all source
 COPY . .
-WORKDIR  "/src/OrderService.Api"
+
+# Build
+WORKDIR  "/src/OrderService/OrderService.Api"
 RUN dotnet build "./OrderService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish

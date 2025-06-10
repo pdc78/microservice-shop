@@ -1,5 +1,5 @@
-namespace OrderService.Domain.Events;
-public abstract class ShippingEvent: IIntegrationEvent
+namespace Contracts.Events;
+public abstract class ShippingEvent : IIntegrationEvent
 {
     public Guid OrderId { get; init; }
 }

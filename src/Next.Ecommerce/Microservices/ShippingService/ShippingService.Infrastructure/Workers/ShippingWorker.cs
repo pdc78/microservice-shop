@@ -3,7 +3,7 @@ using ShippingService.Application.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using ShippingService.Domain.Events;
+using Contracts.Events;
 
 namespace ShippingService.Infrastructure.Workers
 {

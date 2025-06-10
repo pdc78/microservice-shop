@@ -4,6 +4,7 @@ using OrderService.Application.Interfaces;
 using OrderService.Domain.DTOs;
 using OrderService.Domain.Entities;
 using OrderService.Domain.Events;
+using Contracts.Events;
 
 namespace OrderService.Application.Services;
 
@@ -42,11 +43,7 @@ public class OrderProcessingService : IOrderService
         {
             OrderId = order.Id,
             UserId = order.UserId,
-            Items = order.Items.Select(i => new OrderItemEvent
-            {
-                ProductId = i.ProductId,
-                Quantity = i.Quantity
-            }).ToList(),
+            Items = order.Items.Select(i => new OrderItemEvent(i.ProductId,i.Quantity)).ToList(),
             ShippingAddress = order.ShippingAddress, // Replace with actual shipping address logic
             TotalAmount = order.TotalAmount
         };

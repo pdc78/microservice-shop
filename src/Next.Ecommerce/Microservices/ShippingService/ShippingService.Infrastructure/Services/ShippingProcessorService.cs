@@ -2,7 +2,7 @@
 using Azure.Messaging.ServiceBus;
 using ShippingService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
-using ShippingService.Domain.Events;
+using Contracts.Events;
 
 namespace ShippingService.Infrastructure.Services;
 

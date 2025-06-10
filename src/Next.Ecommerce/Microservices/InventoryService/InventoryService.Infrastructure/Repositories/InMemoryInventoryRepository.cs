@@ -1,4 +1,3 @@
-using InventoryService.Application;
 using InventoryService.Application.Entities;
 using InventoryService.Domain.Entities;
 

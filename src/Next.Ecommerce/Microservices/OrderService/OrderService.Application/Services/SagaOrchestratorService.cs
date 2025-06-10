@@ -7,7 +7,6 @@ using System.Text.Json;
 using OrderService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
-using System.Text;
 
 
 public class SagaOrchestratorService : BackgroundService
@@ -116,202 +115,6 @@ public class SagaOrchestratorService : BackgroundService
         await args.CompleteMessageAsync(args.Message);
     }
 
-    private async Task HandleInventoryEvents(ProcessMessageEventArgs args)
-    {
-        using var scope = _serviceProvider.CreateScope();
-
-        try
-        {
-            _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandleInventoryEvents got a new message");
-            args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
-            args.Message.ApplicationProperties.TryGetValue("orderId", out var orderIdObj);
-
-            if (typeObj is not string messageType || orderIdObj is not string orderIdStr || !Guid.TryParse(orderIdStr, out var orderId))
-            {
-                _logger.LogWarning("Invalid message format");
-                await args.DeadLetterMessageAsync(args.Message, "InvalidMessage", "Missing or invalid type/OrderId");
-                return;
-            }
-
-            if (!_sagaStates.TryGetValue(orderId, out var saga))
-            {
-                _logger.LogWarning("Saga state not found for OrderId {OrderId}", orderId);
-                await args.DeadLetterMessageAsync(args.Message, "SagaNotFound", "Saga state not initialized");
-                return;
-            }
-            var json = args.Message.Body.ToString();
-            _logger.LogInformation("Received message {json} of type {messageType}", json, messageType);
-            if (!string.IsNullOrWhiteSpace(json))
-            {
-                switch (messageType)
-                {
-                    case nameof(InventoryConfirmedEvent):
-                        saga.InventorySuccess = true;
-                        _logger.LogInformation($"InventoryConfirmedEvent: {saga.InventorySuccess}");
-                        break;
-
-                    case nameof(InventoryCheckFailedEvent):
-                        saga.InventoryFailed = true;
-                        _logger.LogInformation($"ShippingFailedEvent: {saga.InventoryFailed}");
-                        break;
-
-                    default:
-                        _logger.LogWarning("Unknown message type: {MessageType}", messageType);
-                        await args.DeadLetterMessageAsync(args.Message, "UnknownType", "Unrecognized message type");
-                        return;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("Message body is empty or null.");
-                await args.DeadLetterMessageAsync(args.Message, "EmptyMessageBody", "Message body is empty or null.");
-            }
-            // Complete the message after processing  
-            await EvaluateSagaAsync(saga, scope);
-            await args.CompleteMessageAsync(args.Message);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to deserialize message from Inventory Topic.");
-            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
-        }
-    }
-
-    private async Task HandleShippingEvents(ProcessMessageEventArgs args)
-    {
-        using var scope = _serviceProvider.CreateScope();
-        try
-        {
-            _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandleShippingEvents got a new message");
-            args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
-            args.Message.ApplicationProperties.TryGetValue("orderId", out var orderIdObj);
-
-            if (typeObj is not string messageType || orderIdObj is not string orderIdStr || !Guid.TryParse(orderIdStr, out var orderId))
-            {
-                _logger.LogWarning("Invalid message format");
-                await args.DeadLetterMessageAsync(args.Message, "InvalidMessage", "Missing or invalid type/OrderId");
-                return;
-            }
-
-            if (!_sagaStates.TryGetValue(orderId, out var saga))
-            {
-                _logger.LogWarning("Saga state not found for OrderId {OrderId}", orderId);
-                await args.DeadLetterMessageAsync(args.Message, "SagaNotFound", "Saga state not initialized");
-                return;
-            }
-
-            var json = args.Message.Body.ToString();
-            _logger.LogInformation("Received message {json} of type {messageType}", json, messageType);
-
-            if (!string.IsNullOrWhiteSpace(json))
-            {
-                switch (messageType)
-                {
-                    case nameof(ShippingConfirmedEvent):
-                        saga.ShippingSuccess = true;
-                        _logger.LogInformation($"ShippingConfirmedEvent: {saga.ShippingSuccess}");
-                        break;
-
-                    case nameof(ShippingFailedEvent):
-                        saga.ShippingFailed = true;
-                        _logger.LogInformation($"ShippingFailedEvent: {saga.ShippingFailed}");
-                        break;
-
-                    default:
-                        _logger.LogWarning("Unknown message type: {MessageType}", messageType);
-                        await args.DeadLetterMessageAsync(args.Message, "UnknownType", "Unrecognized message type");
-                        return;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("Message body is empty or null.");
-                await args.DeadLetterMessageAsync(args.Message, "EmptyMessageBody", "Message body is empty or null.");
-            }
-
-            await EvaluateSagaAsync(saga, scope);
-            await args.CompleteMessageAsync(args.Message);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to deserialize message from Shipping Topic.");
-            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error while processing shipping events.");
-            await args.DeadLetterMessageAsync(args.Message, "ProcessingError", ex.Message);
-        }
-    }
-
-    private async Task HandlePaymentEvents(ProcessMessageEventArgs args)
-    {
-        using var scope = _serviceProvider.CreateScope();
-        try
-        {
-            _logger.LogInformation($"{nameof(SagaOrchestratorService)} - HandlePaymentEvents got a new message");
-            args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
-            args.Message.ApplicationProperties.TryGetValue("orderId", out var orderIdObj);
-
-            if (typeObj is not string messageType || orderIdObj is not string orderIdStr || !Guid.TryParse(orderIdStr, out var orderId))
-            {
-                _logger.LogWarning("Invalid message format");
-                await args.DeadLetterMessageAsync(args.Message, "InvalidMessage", "Missing or invalid type/OrderId");
-                return;
-            }
-
-            if (!_sagaStates.TryGetValue(orderId, out var saga))
-            {
-                _logger.LogWarning("Saga state not found for OrderId {OrderId}", orderId);
-                await args.DeadLetterMessageAsync(args.Message, "SagaNotFound", "Saga state not initialized");
-                return;
-            }
-
-            var json = args.Message.Body.ToString();
-            _logger.LogInformation("Received message {json} of type {messageType}", json, messageType);
-
-            if (!string.IsNullOrWhiteSpace(json))
-            {
-                switch (messageType)
-                {
-                    case nameof(PaymentConfirmedEvent):
-                        saga.PaymentSuccess = true;
-                        _logger.LogInformation($"PaymentConfirmedEvent: {saga.PaymentSuccess}");
-                        break;
-
-                    case nameof(PaymentFailedEvent):
-                        saga.PaymentFailed = true;
-                        _logger.LogInformation($"PaymentFailedEvent: {saga.PaymentFailed}");
-                        break;
-
-                    default:
-                        _logger.LogWarning("Unknown message type: {MessageType}", messageType);
-                        await args.DeadLetterMessageAsync(args.Message, "UnknownType", "Unrecognized message type");
-                        return;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("Message body is empty or null.");
-                await args.DeadLetterMessageAsync(args.Message, "EmptyMessageBody", "Message body is empty or null.");
-            }
-
-            // Complete the message after processing  
-            await EvaluateSagaAsync(saga, scope);
-            await args.CompleteMessageAsync(args.Message);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to deserialize message from Payment Topic.");
-            await args.DeadLetterMessageAsync(args.Message, "DeserializationFailed", ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error while processing payment events.");
-            await args.DeadLetterMessageAsync(args.Message, "ProcessingError", ex.Message);
-        }
-    }
-
     private async Task EvaluateSagaAsync(SagaState saga, IServiceScope scope)
     {
         var orderRepository = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
@@ -321,7 +124,7 @@ public class SagaOrchestratorService : BackgroundService
 
         if (!saga.IsCompleted)
         {
-            _logger.LogInformation("Saga state for OrderId {OrderId} is not completed yet. Current state: InventorySuccess={InventorySuccess}, PaymentSuccess={PaymentSuccess}, ShippingSuccess={ShippingSuccess}, InventoryFailed={InventoryFailed}, PaymentFailed={PaymentFailed}, ShippingFailed={ShippingFailed}", saga.OrderId, saga.InventorySuccess, saga.PaymentSuccess, saga.ShippingSuccess, saga.InventoryFailed, saga.PaymentFailed, saga.ShippingFailed);
+            _logger.LogInformation("Saga state for OrderId {OrderId} is not completed yet. Current state: InventorySuccess={InventorySuccess}, PaymentSuccess={PaymentSuccess}, ShippingSuccess={ShippingSuccess}", saga.OrderId, saga.InventorySuccess, saga.PaymentSuccess, saga.ShippingSuccess);
             return;
         }
 
@@ -367,7 +170,10 @@ public class SagaOrchestratorService : BackgroundService
         else
         {
             _logger.LogInformation("Saga completed successfully for OrderId {OrderId}", saga.OrderId);
+
             await orderRepository.UpdateAsync(saga.OrderId, OrderStatus.Confirmed);
+
+            _logger.LogInformation("OrderId {OrderId} status updated to Confirmed", saga.OrderId);
         }
 
         _sagaStates.TryRemove(saga.OrderId, out _);
@@ -394,4 +200,132 @@ public class SagaOrchestratorService : BackgroundService
         await base.StopAsync(cancellationToken);
         _logger.LogInformation("Saga Orchestrator Service stopped.");
     }
+
+    private bool TryExtractSagaFromMessage(ProcessMessageEventArgs args, out string messageType, out SagaState saga, out (string WarningMessage, string DeadLetterReason, string DeadLetterDescription) errorReason)
+    {
+        messageType = null;
+        saga = null;
+        errorReason = default;
+
+        args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj);
+        args.Message.ApplicationProperties.TryGetValue("orderId", out var orderIdObj);
+
+        if (typeObj is not string mt || orderIdObj is not string orderIdStr || !Guid.TryParse(orderIdStr, out var orderId))
+        {
+            errorReason = ("Invalid message format", "InvalidMessage", "Missing or invalid type/OrderId");
+            return false;
+        }
+
+        if (!_sagaStates.TryGetValue(orderId, out saga))
+        {
+            errorReason = ($"Saga state not found for OrderId {orderId}", "SagaNotFound", "Saga state not initialized");
+            return false;
+        }
+
+        messageType = mt;
+        return true;
+    }
+
+
+    private bool TryExtractMessageMetadata(ProcessMessageEventArgs args, out MessageMetadata? metadata)
+    {
+        metadata = null;
+
+        if (!args.Message.ApplicationProperties.TryGetValue("messageType", out var typeObj) ||
+            !args.Message.ApplicationProperties.TryGetValue("orderId", out var orderIdObj) ||
+            typeObj is not string messageType ||
+            orderIdObj is not string orderIdStr ||
+            !Guid.TryParse(orderIdStr, out var orderId))
+        {
+            return false;
+        }
+
+        metadata = new MessageMetadata
+        {
+            MessageType = messageType,
+            OrderId = orderId,
+            JsonBody = args.Message.Body.ToString()
+        };
+
+        return true;
+    }
+
+    private async Task HandleMessageWithSagaStateAsync(
+        ProcessMessageEventArgs args,
+        Dictionary<string, Action<SagaState>> messageTypeToAction)
+    {
+        using var scope = _serviceProvider.CreateScope();
+
+        if (!TryExtractMessageMetadata(args, out var metadata))
+        {
+            await DeadLetterAsync(args, "InvalidMessage", "Missing or invalid type/OrderId");
+            return;
+        }
+
+        if (!_sagaStates.TryGetValue(metadata.OrderId, out var saga))
+        {
+            await DeadLetterAsync(args, "SagaNotFound", $"Saga state not found for OrderId {metadata.OrderId}");
+            return;
+        }
+
+        try
+        {
+            _logger.LogInformation("Received message {json} of type {messageType}", metadata.JsonBody, metadata.MessageType);
+
+            if (string.IsNullOrWhiteSpace(metadata.JsonBody))
+            {
+                await DeadLetterAsync(args, "EmptyMessageBody", "Message body is empty or null.");
+                return;
+            }
+
+            if (!messageTypeToAction.TryGetValue(metadata.MessageType, out var stateUpdateAction))
+            {
+                await DeadLetterAsync(args, "UnknownType", $"Unrecognized message type: {metadata.MessageType}");
+                return;
+            }
+
+            stateUpdateAction(saga);
+
+            await EvaluateSagaAsync(saga, scope);
+            await args.CompleteMessageAsync(args.Message);
+        }
+        catch (JsonException ex)
+        {
+            await DeadLetterAsync(args, "DeserializationFailed", ex.Message, ex);
+        }
+        catch (Exception ex)
+        {
+            await DeadLetterAsync(args, "ProcessingError", ex.Message, ex);
+        }
+    }
+
+    private Task DeadLetterAsync(ProcessMessageEventArgs args, string reason, string description, Exception? ex = null)
+    {
+        _logger.LogWarning(ex, "Dead-lettering message. Reason: {reason}, Description: {description}", reason, description);
+        return args.DeadLetterMessageAsync(args.Message, reason, description);
+    }
+
+
+    // Handlers for each topic
+
+    public Task HandlePaymentEvents(ProcessMessageEventArgs args) =>
+        HandleMessageWithSagaStateAsync(args, new()
+        {
+            { nameof(PaymentConfirmedEvent), saga => saga.PaymentSuccess = true },
+            { nameof(PaymentFailedEvent), saga => saga.PaymentFailed = true }
+        });
+
+    public Task HandleShippingEvents(ProcessMessageEventArgs args) =>
+        HandleMessageWithSagaStateAsync(args, new()
+        {
+            { nameof(ShippingConfirmedEvent), saga => saga.ShippingSuccess = true },
+            { nameof(ShippingFailedEvent), saga => saga.ShippingFailed = true }
+        });
+
+    public Task HandleInventoryEvents(ProcessMessageEventArgs args) =>
+        HandleMessageWithSagaStateAsync(args, new()
+        {
+            { nameof(InventoryConfirmedEvent), saga => saga.InventorySuccess = true },
+            { nameof(InventoryCheckFailedEvent), saga => saga.InventoryFailed = true }
+        });
 }

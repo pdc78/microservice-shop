@@ -14,14 +14,14 @@ services:
     container_name: api-order
     image: api-order-img
     build:
-      context: ./microservices/orderservice
-      dockerfile: Dockerfile
+      context: ./microservices
+      dockerfile: ./orderservice/Dockerfile
     ports:
       - "5096:8080"
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=
+    - ConnectionStrings__ServiceBus=Endpoint=empty
     - ASPNETCORE_ENVIRONMENT=Development
       
   api-basket:
@@ -39,12 +39,12 @@ services:
     container_name: inventory-service
     image: inventory-service-img
     build:
-      context: ./microservices/inventoryservice
-      dockerfile: Dockerfile
+      context: ./microservices
+      dockerfile: ./inventoryservice/Dockerfile
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=
+    - ConnectionStrings__ServiceBus=Endpoint=empty
     - ASPNETCORE_ENVIRONMENT=Development
 
 
@@ -52,24 +52,24 @@ services:
     container_name: payment-service
     image: payment-service-img
     build:
-      context: ./microservices/paymentservice
-      dockerfile: Dockerfile
+      context: ./microservices
+      dockerfile: ./paymentservice/Dockerfile
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=Endpoint=
+    - ConnectionStrings__ServiceBus=Endpoint=empty
     - ASPNETCORE_ENVIRONMENT=Development
 
   shipping-service:
     container_name: shipping-service
     image: shipping-service-img
     build:
-      context: ./microservices/shippingservice
-      dockerfile: Dockerfile
+      context: ./microservices
+      dockerfile: ./shippingservice/Dockerfile
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=
+    - ConnectionStrings__ServiceBus=Endpoint=empty
     - ASPNETCORE_ENVIRONMENT=Development
 
 

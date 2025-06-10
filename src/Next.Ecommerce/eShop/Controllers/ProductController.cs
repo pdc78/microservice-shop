@@ -30,6 +30,7 @@ namespace eShop.Controllers
                     Basket = basket,
                     UserId = userId
                 };
+                _logger.LogInformation("Products loaded successfully for user {UserId}", userId);
 
                 return View(model);
             }

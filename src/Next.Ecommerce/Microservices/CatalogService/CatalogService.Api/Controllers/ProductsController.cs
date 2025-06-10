@@ -3,6 +3,7 @@ using CatalogService.Api.Extensions;
 using CatalogService.Application.Exceptions;
 using CatalogService.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using ValidationException = CatalogService.Application.Exceptions.ValidationException;
 
 namespace CatalogService.Api.Controllers
@@ -33,6 +34,7 @@ namespace CatalogService.Api.Controllers
                     throw new NotFoundException("No products found for the requested page.");
 
                 var productDtos = products.Select(p => p.ToDto());
+                _logger.LogInformation("Retrieved {Count} products for page {PageNumber} with page size {PageSize}.", productDtos.Count(), pageNumber, pageSize);
                 return Ok(productDtos);
             }
             catch (ValidationException ex)

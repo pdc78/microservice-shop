@@ -1,4 +1,5 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using Azure.Core;
+using Azure.Messaging.ServiceBus;
 using InventoryService.Application.Interfaces;
 using InventoryService.Infrastructure.Services;
 using InventoryService.Infrastructure.Workers;
@@ -16,14 +17,41 @@ IHost host = Host.CreateDefaultBuilder(args)
     {
         var configuration = context.Configuration;
         var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus");
+        var topicName = configuration.GetSection("Topics__Inventory");
 
         if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
-        {
             throw new InvalidOperationException("Service Bus connection string is not configured.");
-        }
 
-        services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
-        services.AddScoped<IInventoryService, InventoryProcessorService>();
+        services.AddSingleton(sp =>
+        {
+            var serviceBusClientOption = new ServiceBusClientOptions
+            {
+                RetryOptions = new ServiceBusRetryOptions
+                {
+                    Mode = ServiceBusRetryMode.Exponential,
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(0.5),
+                    MaxDelay = TimeSpan.FromSeconds(10)
+                }
+            };
+
+            return new ServiceBusClient(serviceBusConnectionString, serviceBusClientOption);
+
+        });
+
+        services.AddScoped<IInventoryService>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var serviceBusClient = sp.GetRequiredService<ServiceBusClient>();
+            var logger = sp.GetRequiredService<ILogger<InventoryProcessorService>>();
+
+            var topicName = configuration["Topics:Inventory"];
+            if (string.IsNullOrWhiteSpace(topicName))
+                throw new InvalidOperationException("Missing Inventory topic configuration");
+
+            return new InventoryProcessorService(serviceBusClient, topicName, logger);
+        });
+
 
         services.AddHostedService<InventoryWorker>();
 

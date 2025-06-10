@@ -18,12 +18,35 @@ IHost host = Host.CreateDefaultBuilder(args)
         var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus");
 
         if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
-        {
-            throw new InvalidOperationException("Service Bus connection string is not configured.");
-        }
+            throw new InvalidOperationException("Missing Service Bus connection string");
 
-        services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
-        services.AddScoped<IPaymentService, PaymentProcessorService>();
+        services.AddSingleton(sp =>
+        {
+            var clientOption = new ServiceBusClientOptions
+            {
+                RetryOptions = new ServiceBusRetryOptions
+                {
+                    Mode = ServiceBusRetryMode.Exponential,
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(0.5),
+                    MaxDelay = TimeSpan.FromSeconds(10)
+                }
+            };
+            return new ServiceBusClient(serviceBusConnectionString, clientOption);
+        });
+
+        services.AddScoped<IPaymentService>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var serviceBusClient = sp.GetRequiredService<ServiceBusClient>();
+            var logger = sp.GetRequiredService<ILogger<PaymentProcessorService>>();
+
+            var topicName = configuration["Topics:Payment"];
+            if (string.IsNullOrWhiteSpace(topicName))
+                throw new InvalidOperationException("Missing Payment topic configuration");
+
+            return new PaymentProcessorService(serviceBusClient, topicName, logger);
+        });
 
         services.AddHostedService<PaymentWorker>();
 

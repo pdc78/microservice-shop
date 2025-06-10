@@ -18,12 +18,37 @@ IHost host = Host.CreateDefaultBuilder(args)
         var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus");
 
         if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
-        {
             throw new InvalidOperationException("Service Bus connection string is not configured.");
-        }
 
-        services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
-        services.AddScoped<IShippingService, ShippingProcessorService>();
+        services.AddSingleton(sp =>
+        {
+            var serviceBusClientOption = new ServiceBusClientOptions
+            {
+                RetryOptions = new ServiceBusRetryOptions
+                {
+                    Mode= ServiceBusRetryMode.Exponential,
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(0.5),
+                    MaxDelay= TimeSpan.FromSeconds(10)
+                }
+            };
+
+            return new ServiceBusClient(serviceBusConnectionString, serviceBusClientOption);
+        });
+
+
+        services.AddScoped<IShippingService>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var serviceBusClient = sp.GetRequiredService<ServiceBusClient>();
+            var logger = sp.GetRequiredService<ILogger<ShippingProcessorService>>();
+
+            var topicName = configuration["Topics:Shipping"];
+            if (string.IsNullOrWhiteSpace(topicName))
+                throw new InvalidOperationException("Missing Shipping topic configuration");
+
+            return new ShippingProcessorService(serviceBusClient, topicName, logger);
+        });
 
         services.AddHostedService<ShippingWorker>();
 

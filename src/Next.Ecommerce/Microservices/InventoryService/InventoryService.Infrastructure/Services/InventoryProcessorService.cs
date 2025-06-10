@@ -9,11 +9,13 @@ namespace InventoryService.Infrastructure.Services;
 public class InventoryProcessorService : IInventoryService
 {
     private readonly ServiceBusClient _serviceBusClient;
+    private readonly ServiceBusSender _serviceBusSender;
     private readonly ILogger<InventoryProcessorService> _logger;
 
-    public InventoryProcessorService(ServiceBusClient serviceBusClient, ILogger<InventoryProcessorService> logger)
+    public InventoryProcessorService(ServiceBusClient serviceBusClient, string topicName, ILogger<InventoryProcessorService> logger)
     {
         _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(serviceBusClient), "ServiceBusClient cannot be null");
+        _serviceBusSender = string.IsNullOrEmpty(topicName) ? throw new ArgumentNullException(nameof(topicName), "topicName cannot be null") : _serviceBusClient.CreateSender(topicName);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger), "Logger cannot be null");
     }
 

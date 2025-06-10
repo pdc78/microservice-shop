@@ -9,11 +9,13 @@ namespace PaymentService.Infrastructure.Services;
 public class PaymentProcessorService : IPaymentService
 {
     private readonly ServiceBusClient _serviceBusClient;
+    private readonly ServiceBusSender _serviceBusSender;
     private readonly ILogger<PaymentProcessorService> _logger;
 
-    public PaymentProcessorService(ServiceBusClient serviceBusClient, ILogger<PaymentProcessorService> logger)
+    public PaymentProcessorService(ServiceBusClient serviceBusClient, string topicName, ILogger<PaymentProcessorService> logger)
     {
         _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(serviceBusClient), "ServiceBusClient cannot be null");
+        _serviceBusSender = string.IsNullOrEmpty(topicName) ? throw new ArgumentNullException(nameof(topicName), "topicName cannot be null") : _serviceBusClient.CreateSender(topicName);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger), "Logger cannot be null");
     }
 
@@ -38,14 +40,12 @@ public class PaymentProcessorService : IPaymentService
         var json = JsonSerializer.Serialize(evt);
         _logger.LogInformation("SendPaymentEventAsync {messageType} for Order {json}", messageType, json);
 
-        var sender = _serviceBusClient.CreateSender("paymenttopic");
-
         var sbMessage = new ServiceBusMessage(json)
         {
             ContentType = "application/json",
             ApplicationProperties = { ["messageType"] = messageType, ["orderId"] = orderId.ToString() }
         };
 
-        await sender.SendMessageAsync(sbMessage);
+        await _serviceBusSender.SendMessageAsync(sbMessage);
     }
 }

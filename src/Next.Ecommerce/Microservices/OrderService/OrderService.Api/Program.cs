@@ -6,6 +6,7 @@ using OrderService.Infrastructure.Data;
 using Azure.Messaging.ServiceBus;
 using OrderService.Infrastructure.ServiceBus;
 using OrderService.Application;
+using OrderService.Domain.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,15 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseInMemoryDatabase("OrderDb"));
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IOrderService, OrderProcessingService>();
-
-
-builder.Services.AddScoped<IServiceBusPublisher, AzureServiceBusPublisher>();
-
-// Register Azure Service Bus client
-// builder.Services.AddSingleton(new ServiceBusClient(
-//  builder.Configuration.GetConnectionString("ServiceBusConnection")));
-
 
 builder.Services.AddSingleton<ServiceBusClient>(sp =>
 {
@@ -31,17 +23,47 @@ builder.Services.AddSingleton<ServiceBusClient>(sp =>
     if (string.IsNullOrWhiteSpace(connectionString))
         throw new InvalidOperationException("Missing Service Bus connection string");
 
-    return new ServiceBusClient(connectionString);
+    var clientOptions = new ServiceBusClientOptions
+    {
+        RetryOptions = new ServiceBusRetryOptions
+        {
+            Mode = ServiceBusRetryMode.Exponential,
+            MaxRetries = 3,
+            Delay = TimeSpan.FromSeconds(0.5),
+            MaxDelay = TimeSpan.FromSeconds(10)
+        }
+    };
+
+    return new ServiceBusClient(connectionString, clientOptions);
 });
 
+builder.Services.AddScoped<IServiceBusPublisher, AzureServiceBusPublisher>();
 
 
 // Register other services like IOrderService, etc.
-builder.Services.AddScoped<IOrderService, OrderProcessingService>();
+
+builder.Services.AddScoped<IOrderService>(sp =>
+{
+    var repository = sp.GetRequiredService<IOrderRepository>();
+    var publisher = sp.GetRequiredService<IServiceBusPublisher>();
+    var logger = sp.GetRequiredService<ILogger<OrderProcessingService>>();
+    var configuration = sp.GetRequiredService<IConfiguration>();
+
+    var topicName = configuration["Topics:Order"];
+    if (string.IsNullOrWhiteSpace(topicName))
+        throw new InvalidOperationException("Missing Order topic configuration");
+
+    return new OrderProcessingService(repository, publisher, topicName, logger);
+});
+
+
+var subscriptions = builder.Services.Configure<SagaSubscriptionOptions>(
+ builder.Configuration.GetSection("SagaSubscriptionOptions"));
+
+
 
 // Register the Saga Orchestrator
 builder.Services.AddSingleton<IHostedService, SagaOrchestratorService>();
-// builder.Services.AddScoped<ISagaOrchestratorService, SagaOrchestratorService>();
 
 builder.Services.AddControllers();
 

@@ -21,8 +21,17 @@ services:
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=Endpoint=empty
-    - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ServiceBus=Endpoint=empty
+      - ASPNETCORE_ENVIRONMENT=Development
+      - SagaSubscriptionOptions__SagaSubscriptions__0__Topic=ordertopic
+      - SagaSubscriptionOptions__SagaSubscriptions__0__Subscription=order-subscription-all
+      - SagaSubscriptionOptions__SagaSubscriptions__1__Topic=inventorytopic
+      - SagaSubscriptionOptions__SagaSubscriptions__1__Subscription=inventory-sub-response
+      - SagaSubscriptionOptions__SagaSubscriptions__2__Topic=paymenttopic
+      - SagaSubscriptionOptions__SagaSubscriptions__2__Subscription=payment-sub-response
+      - SagaSubscriptionOptions__SagaSubscriptions__3__Topic=shippingtopic
+      - SagaSubscriptionOptions__SagaSubscriptions__3__Subscription=shipping-sub-response
+
       
   api-basket:
     container_name: api-basket
@@ -44,8 +53,9 @@ services:
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=Endpoint=empty
-    - ASPNETCORE_ENVIRONMENT=Development
+     - ConnectionStrings__ServiceBus=Endpoint=empty
+     - Topics__Inventory=inventorytopic
+     - ASPNETCORE_ENVIRONMENT=Development
 
 
   payment-service:
@@ -57,8 +67,9 @@ services:
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=Endpoint=empty
-    - ASPNETCORE_ENVIRONMENT=Development
+     - ConnectionStrings__ServiceBus=Endpoint=empty
+     - Topics__Payment=paymenttopic
+     - ASPNETCORE_ENVIRONMENT=Development
 
   shipping-service:
     container_name: shipping-service
@@ -69,8 +80,9 @@ services:
     networks:
       - shop-network
     environment:
-    - ConnectionStrings__ServiceBus=Endpoint=empty
-    - ASPNETCORE_ENVIRONMENT=Development
+     - ConnectionStrings__ServiceBus=Endpoint=empty
+     - Topics__Shipping=shippingtopic
+     - ASPNETCORE_ENVIRONMENT=Development
 
 
   api-gateway:

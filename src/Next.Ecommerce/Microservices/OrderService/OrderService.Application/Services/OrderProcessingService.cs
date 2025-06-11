@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using OrderService.Application.Interfaces;
 using OrderService.Domain.DTOs;
 using OrderService.Domain.Entities;
-using OrderService.Domain.Events;
 using Contracts.Events;
 
 namespace OrderService.Application.Services;
@@ -11,14 +10,16 @@ namespace OrderService.Application.Services;
 public class OrderProcessingService : IOrderService
 {
     private readonly IOrderRepository _repository;
-    private readonly IServiceBusPublisher _bus;
+    private readonly IServiceBusPublisher _serviceBusPublisher;
     private readonly ILogger<OrderProcessingService> _logger;
+    private readonly string _orderTopicName;
 
-    public OrderProcessingService(IOrderRepository repository, IServiceBusPublisher bus, ILogger<OrderProcessingService> logger)
+    public OrderProcessingService(IOrderRepository repository, IServiceBusPublisher serviceBusPublisher, string orderTopicName, ILogger<OrderProcessingService> logger)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(IOrderRepository));
-        _bus = bus ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
+        _serviceBusPublisher = serviceBusPublisher ?? throw new ArgumentNullException(nameof(IServiceBusPublisher));
         _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<OrderProcessingService>));
+        _orderTopicName = string.IsNullOrEmpty(orderTopicName) ? throw new ArgumentNullException(orderTopicName) : orderTopicName;
     }
 
 
@@ -43,12 +44,12 @@ public class OrderProcessingService : IOrderService
         {
             OrderId = order.Id,
             UserId = order.UserId,
-            Items = order.Items.Select(i => new OrderItemEvent(i.ProductId,i.Quantity)).ToList(),
+            Items = order.Items.Select(i => new OrderItemEvent(i.ProductId, i.Quantity)).ToList(),
             ShippingAddress = order.ShippingAddress, // Replace with actual shipping address logic
             TotalAmount = order.TotalAmount
         };
 
-        await _bus.PublishAsync("ordertopic", orderCreatedEvent.OrderId.ToString(), nameof(OrderCreatedEvent), orderCreatedEvent);
+        await _serviceBusPublisher.PublishAsync(_orderTopicName, orderCreatedEvent.OrderId.ToString(), nameof(OrderCreatedEvent), orderCreatedEvent);
         // Optionally, you can also publish an event to notify other services about the new order
         return order.Id;
     }

@@ -8,6 +8,7 @@ using OrderService.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using Contracts.Events;
+using Microsoft.Extensions.Options;
 
 
 namespace OrderService.Application;
@@ -18,27 +19,49 @@ public class SagaOrchestratorService : BackgroundService
     private readonly ServiceBusClient _serviceBusClient;
     private readonly ILogger<SagaOrchestratorService> _logger;
     private readonly List<ServiceBusProcessor> _processors = new();
+    private readonly IEnumerable<SagaTopicSubscriptionConfiguration> _subscriptions;
 
     private static readonly ConcurrentDictionary<Guid, SagaState> _sagaStates = new();
 
 
-    public SagaOrchestratorService(IServiceProvider serviceProvider, ServiceBusClient serviceBusClient, ILogger<SagaOrchestratorService> logger)
+    public SagaOrchestratorService(IServiceProvider serviceProvider, ServiceBusClient serviceBusClient, IOptions<SagaSubscriptionOptions> options, ILogger<SagaOrchestratorService> logger)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
         _serviceBusClient = serviceBusClient ?? throw new ArgumentNullException(nameof(ServiceBusClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(ILogger<SagaOrchestratorService>));
+
+        _subscriptions = options.Value.SagaSubscriptions ?? throw new ArgumentNullException(nameof(options.Value.SagaSubscriptions));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Saga Orchestrator Service starting.");
 
-        await RegisterProcessorAsync("ordertopic", "order-subscription-all", HandleOrderCreatedEvent, stoppingToken);
-        await RegisterProcessorAsync("inventorytopic", "inventory-sub-response", HandleInventoryEvents, stoppingToken);
-        await RegisterProcessorAsync("paymenttopic", "payment-sub-response", HandlePaymentEvents, stoppingToken);
-        await RegisterProcessorAsync("shippingtopic", "shipping-sub-response", HandleShippingEvents, stoppingToken);
 
+        foreach (var sub in _subscriptions)
+        {
+
+           
+                sub.Handler = ResolveHandler(sub.Topic); // Assign handler based on topic
+                await RegisterProcessorAsync(sub.Topic, sub.Subscription, sub.Handler, stoppingToken);
+
+
+            await RegisterProcessorAsync(sub.Topic, sub.Subscription, sub.Handler, stoppingToken);
+        }
+        
         _logger.LogInformation("Saga Orchestrator Service started.");
+    }
+
+    private Func<ProcessMessageEventArgs, Task> ResolveHandler(string topic)
+    {
+        return topic switch
+        {
+            "ordertopic" => HandleOrderCreatedEvent,
+            "inventorytopic" => HandleInventoryEvents,
+            "paymenttopic" => HandlePaymentEvents,
+            "shippingtopic" => HandleShippingEvents,
+            _ => throw new InvalidOperationException($"No handler defined for topic '{topic}'")
+        };
     }
 
     private async Task RegisterProcessorAsync(string topic, string subscription, Func<ProcessMessageEventArgs, Task> handler, CancellationToken token)
@@ -233,7 +256,6 @@ public class SagaOrchestratorService : BackgroundService
         messageType = mt;
         return true;
     }
-
 
     private bool TryExtractMessageMetadata(ProcessMessageEventArgs args, out MessageMetadata? metadata)
     {

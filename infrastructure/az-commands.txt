@@ -1,0 +1,5 @@
+az group create --name rg-test-westeurope --location westeurope
+
+az deployment group validate --resource-group  rg-test-westeurope --template-file main.bicep
+
+az deployment group create --resource-group  rg-test-westeurope --template-file main.bicep

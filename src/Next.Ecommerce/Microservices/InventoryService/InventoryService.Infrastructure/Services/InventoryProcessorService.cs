@@ -51,14 +51,12 @@ public class InventoryProcessorService : IInventoryService
         var json = JsonSerializer.Serialize(evt);
         _logger.LogInformation("SendInventoryEventAsync {messageType} for Order {json}", messageType, json);
 
-        var sender = _serviceBusClient.CreateSender("inventorytopic");
-
         var sbMessage = new ServiceBusMessage(json)
         {
             ContentType = "application/json",
             ApplicationProperties = { ["messageType"] = messageType, ["orderId"] = orderId.ToString() }
         };
 
-        await sender.SendMessageAsync(sbMessage);
+        await _serviceBusSender.SendMessageAsync(sbMessage);
     }
 }

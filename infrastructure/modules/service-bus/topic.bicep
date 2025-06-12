@@ -22,8 +22,6 @@ resource serviceBusTopic 'Microsoft.ServiceBus/namespaces/topics@2024-01-01' = {
   }
 }
 
-
-
 module subscriptionModules './subscription.bicep' = [for currentSubscription in topic.subscriptions: {
   name: '${currentSubscription.name}'
    params: {
